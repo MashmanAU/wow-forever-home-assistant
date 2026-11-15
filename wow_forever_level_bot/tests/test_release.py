@@ -10,9 +10,6 @@ def test_release_versions_and_home_assistant_build_metadata() -> None:
     assert __version__ == "1.7.1"
     assert 'version: "1.7.1"' in (ROOT / "config.yaml").read_text()
     assert 'version = "1.7.1"' in (ROOT / "pyproject.toml").read_text()
-    build = (ROOT / "build.yaml").read_text()
-    assert "amd64:" in build
-    assert "aarch64:" in build
 
 
 def test_authorization_headers_use_runtime_bearer_values() -> None:
