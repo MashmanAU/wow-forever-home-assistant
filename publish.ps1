@@ -369,7 +369,7 @@ try {
             $searchRoot = Get-FullPath -Path $PSScriptRoot
         }
         else {
-            throw "Provide the release ZIP or extracted package path, for example: .\publish.ps1 'C:\Downloads\WoW-Forever-Home-Assistant-v1.9.1-review.zip'"
+            throw "Provide the release ZIP or extracted package path, for example: .\publish.ps1 'C:\Downloads\WoW-Forever-Home-Assistant-v1.9.2-review.zip'"
         }
     }
     else {

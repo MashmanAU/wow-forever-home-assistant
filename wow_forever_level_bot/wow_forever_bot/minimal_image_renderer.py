@@ -132,23 +132,23 @@ def render_minimal_leaderboard_png(
         or _opt(options, "show_notable_activity", False)
         or _opt(options, "show_level_progress", False)
     )
-    # Discord displays tall attachments at a constrained inline width. A narrow canvas,
-    # no decorative header and 48 px edge-to-edge rows keep the useful type large after
-    # Discord scales an 18-character roster into the chat timeline.
-    width = 660
+    # Keep the source PNG narrow and make the name the dominant element. The
+    # default row stays on one line; secondary fields still expand only when a
+    # user explicitly enables them.
+    width = 540
     outer_padding = 4
-    row_height = 66 if secondary_enabled else 48
+    row_height = 72 if secondary_enabled else 54
     height = outer_padding * 2 + len(rows) * row_height
 
     image = Image.new("RGB", (width, height), theme["background"])
     draw = ImageDraw.Draw(image)
 
-    name_font = _font(34, bold=True, condensed=True)
-    badge_font = _font(25, bold=True, condensed=True)
-    movement_font = _font(24, bold=True, condensed=True)
-    death_font = _font(16, bold=True, condensed=True)
+    name_font = _font(27, bold=True, condensed=True)
+    badge_font = _font(19, bold=True, condensed=True)
+    movement_font = _font(18, bold=True, condensed=True)
+    death_font = _font(15, bold=True, condensed=True)
     small_font = _font(13, condensed=True)
-    rank_font = _font(11, bold=True, condensed=True)
+    rank_font = _font(10, bold=True, condensed=True)
 
     for index, row in enumerate(rows):
         y1 = outer_padding + index * row_height
@@ -159,48 +159,49 @@ def render_minimal_leaderboard_png(
         if index:
             draw.line((0, y1, width, y1), fill=theme["background"], width=1)
         x = 6
+        primary_centre_y = y1 + 27
         class_name = row.snapshot.character_class
         colour = _class_colour(class_name) if _opt(options, "use_class_colours", True) else theme["text"]
 
         if _opt(options, "show_class_icons", True):
-            icon_box = (x, y1 + 2, x + 44, y1 + 46)
+            icon_box = (x, y1 + 3, x + 48, y1 + 51)
             _draw_class_glyph(draw, icon_box, class_name, colour)
             if _opt(options, "show_rank", False) and row.rank is not None:
                 rank_text = str(row.rank)
-                rank_box = (x + 27, y1 + 29, x + 44, y1 + 46)
+                rank_box = (x + 30, y1 + 33, x + 48, y1 + 51)
                 draw.ellipse(rank_box, fill=theme["gold"])
-                bbox = draw.textbbox((0, 0), rank_text, font=rank_font)
                 draw.text(
-                    (rank_box[0] + 8.5 - (bbox[2] - bbox[0]) / 2, rank_box[1] + 7.5 - (bbox[3] - bbox[1]) / 2),
+                    ((rank_box[0] + rank_box[2]) / 2, (rank_box[1] + rank_box[3]) / 2),
                     rank_text,
                     font=rank_font,
                     fill="#17130b",
+                    anchor="mm",
                 )
-            x += 50
+            x += 54
         elif _opt(options, "show_rank", False) and row.rank is not None:
             rank_text = f"{row.rank}."
-            draw.text((x, y1 + 14), rank_text, font=small_font, fill=theme["muted"])
+            draw.text((x, primary_centre_y), rank_text, font=small_font, fill=theme["muted"], anchor="lm")
             x += int(draw.textlength(rank_text, font=small_font)) + 8
 
         if _opt(options, "show_level", True):
-            badge_width = 47
-            draw.rounded_rectangle((x, y1 + 4, x + badge_width, y1 + 44), radius=7, fill=theme["border"])
+            badge_width = 46
+            draw.rounded_rectangle((x, y1 + 4, x + badge_width, y1 + 50), radius=7, fill=theme["border"])
             level_text = str(row.snapshot.level)
-            bbox = draw.textbbox((0, 0), level_text, font=badge_font)
             draw.text(
-                (x + badge_width / 2 - (bbox[2] - bbox[0]) / 2, y1 + 24 - (bbox[3] - bbox[1]) / 2),
+                (x + badge_width / 2, primary_centre_y),
                 level_text,
                 font=badge_font,
                 fill=theme["text"],
+                anchor="mm",
             )
             x += badge_width + 4
 
         if _opt(options, "show_24h_changes", True):
             move_text = _movement(row.levels_24h)
             move_colour = "#65d48a" if (row.levels_24h or 0) > 0 else theme["muted"]
-            move_width = max(25, int(draw.textlength(move_text, font=movement_font)))
-            draw.text((x, y1 + 9), move_text, font=movement_font, fill=move_colour)
-            x += move_width + 7
+            move_width = max(22, int(draw.textlength(move_text, font=movement_font)))
+            draw.text((x, primary_centre_y), move_text, font=movement_font, fill=move_colour, anchor="lm")
+            x += move_width + 6
 
         death_text = ""
         if _opt(options, "show_lifetime_deaths", True):
@@ -209,25 +210,27 @@ def render_minimal_leaderboard_png(
         death_width = int(draw.textlength(death_text, font=death_font)) if death_text else 0
         right_edge = width - 8
         if death_text:
-            draw.text((right_edge - death_width, y1 + 13), death_text, font=death_font, fill=theme["muted"])
+            draw.text((right_edge, primary_centre_y), death_text, font=death_font, fill=theme["muted"], anchor="rm")
 
         name_width = max(60, right_edge - death_width - 8 - x)
         name_colour = colour if _opt(options, "use_class_colours", True) else theme["text"]
         draw.text(
-            (x, y1 + 4),
+            (x, primary_centre_y),
             _fit(draw, row.snapshot.display_name.upper(), name_font, name_width),
             font=name_font,
             fill=name_colour,
+            anchor="lm",
         )
 
         if secondary_enabled:
             secondary = _secondary_text(row, options)
             if secondary:
                 draw.text(
-                    (x, y1 + 43),
+                    (x, y1 + 54),
                     _fit(draw, secondary, small_font, right_edge - x),
                     font=small_font,
                     fill=theme["muted"],
+                    anchor="lm",
                 )
             if _opt(options, "show_level_progress", False):
                 bar_y = y2 - 5

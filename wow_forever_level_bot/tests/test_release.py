@@ -7,10 +7,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_release_versions_and_home_assistant_build_metadata() -> None:
-    assert __version__ == "1.9.1"
+    assert __version__ == "1.9.2"
     config = (ROOT / "config.yaml").read_text()
-    assert 'version: "1.9.1"' in config
-    assert 'version = "1.9.1"' in (ROOT / "pyproject.toml").read_text()
+    assert 'version: "1.9.2"' in config
+    assert 'version = "1.9.2"' in (ROOT / "pyproject.toml").read_text()
     assert "image: ghcr.io/mashmanau/{arch}-wow-forever-level-bot" in config
     assert not (ROOT / "build.yaml").exists()
 

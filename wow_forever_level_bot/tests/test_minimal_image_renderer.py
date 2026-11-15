@@ -1,10 +1,12 @@
 from dataclasses import replace
 from datetime import datetime, timezone
 from io import BytesIO
+from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFont
 
 from wow_forever_bot.config import Settings
+from wow_forever_bot.image_renderer import _font, _font_path
 from wow_forever_bot.minimal_image_renderer import render_minimal_leaderboard_png
 from wow_forever_bot.models import CharacterSnapshot, DeathCounters, SnapshotProgress
 
@@ -47,7 +49,7 @@ def test_minimal_image_is_narrow_deterministic_and_large_type() -> None:
     assert first.startswith(b"\x89PNG\r\n\x1a\n")
     image = Image.open(BytesIO(first))
     assert image.mode == "RGB"
-    assert image.size == (660, 152)
+    assert image.size == (540, 170)
 
 
 def test_secondary_fields_expand_rows_only_when_enabled() -> None:
@@ -58,8 +60,8 @@ def test_secondary_fields_expand_rows_only_when_enabled() -> None:
         options=_options(show_race=True, show_class=True, show_7d_changes=True),
         generated_at=generated_at,
     )
-    assert Image.open(BytesIO(minimal)).height == 152
-    assert Image.open(BytesIO(expanded)).height == 206
+    assert Image.open(BytesIO(minimal)).height == 170
+    assert Image.open(BytesIO(expanded)).height == 224
     assert expanded != minimal
 
 
@@ -75,5 +77,21 @@ def test_full_roster_uses_compact_reference_like_dimensions() -> None:
             )
         )
     )
-    assert image.size == (660, 872)
-    assert image.height / len(rows) < 49
+    assert image.size == (540, 980)
+    assert 54 <= image.height / len(rows) <= 55
+
+
+def test_requested_typography_uses_a_scalable_bold_font() -> None:
+    font = _font(27, bold=True, condensed=True)
+    assert isinstance(font, ImageFont.FreeTypeFont)
+    assert font.size == 27
+
+
+def test_alpine_dejavu_directory_is_searched(monkeypatch) -> None:
+    expected = "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf"
+
+    def fake_exists(path: Path) -> bool:
+        return str(path) == expected
+
+    monkeypatch.setattr(Path, "exists", fake_exists)
+    assert _font_path("DejaVuSans-Bold.ttf") == expected

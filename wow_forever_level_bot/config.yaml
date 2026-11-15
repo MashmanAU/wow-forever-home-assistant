@@ -1,5 +1,5 @@
 name: WoW Forever Level Bot
-version: "1.9.1"
+version: "1.9.2"
 slug: wow_forever_level_bot
 description: Discord bot with native, table, Components V2 and deterministic image leaderboards.
 url: https://develop.battle.net/documentation/world-of-warcraft/profile-apis

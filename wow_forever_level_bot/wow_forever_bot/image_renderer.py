@@ -70,6 +70,11 @@ PROFESSION_SHORT = {
 def _font_path(*names: str) -> str | None:
     roots = (
         Path("/usr/share/fonts/TTF"),
+        # Alpine's font-dejavu package installs here. The Home Assistant image
+        # is Alpine-based, so omitting this path silently selected Pillow's
+        # tiny bitmap fallback even though the requested point sizes were much
+        # larger.
+        Path("/usr/share/fonts/dejavu"),
         Path("/usr/share/fonts/truetype/dejavu"),
         Path("/usr/share/fonts/dejavu-sans-fonts"),
         Path("/usr/share/fonts/liberation"),
@@ -107,7 +112,11 @@ def _font(
             "DejaVuSans-Bold.ttf",
         )
     path = _font_path(*names)
-    return ImageFont.truetype(path, size=size) if path else ImageFont.load_default()
+    if path is None:
+        # Never render a misleadingly tiny PNG. The delivery layer catches a
+        # renderer failure and uses the existing native Discord fallback.
+        raise RuntimeError("A scalable DejaVu Sans font is required for image rendering")
+    return ImageFont.truetype(path, size=size)
 
 
 def _opt(options: Any, name: str, default: Any) -> Any:

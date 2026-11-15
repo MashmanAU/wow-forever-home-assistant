@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.2
+
+- Fixes the Alpine production font lookup so installed DejaVu fonts are used instead of Pillow's tiny bitmap fallback.
+- Makes image rendering fail into the existing native Discord fallback if no scalable font can be found.
+- Refines Minimal Image to a 540 px canvas with 54 px rows, 48 px class glyphs, 46 px level badges, 19 px level text, 18 px bold 24-hour movement and 27 px bold class-coloured names.
+- Vertically centres the character name against the class icon, level badge and immediately adjacent 24-hour movement.
+- Retains optional deaths at the far right, removes no display controls and keeps `/60` hidden in every mode.
+- Preserves Table, Native Embed, Components V2, detailed Image, GitHub/GHCR publishing, live data, AI, schedules and read-only `/daily-live-test` behaviour.
+- Makes no database schema change.
+
 ## 1.9.1
 
 - Reduces the default 18-character Minimal Image from 760 × 1,220 px to 660 × 872 px for improved Discord inline scaling.

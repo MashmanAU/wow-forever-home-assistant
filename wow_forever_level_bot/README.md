@@ -2,9 +2,9 @@
 
 A Discord bot that verifies and tracks World of Warcraft: Forever characters through Blizzard's profile API. It supports separate tracking lists and schedules for each Discord server and stores data persistently in SQLite under `/data/wow_forever.db`.
 
-## Version 1.9.1 compact Minimal Image refinement
+## Version 1.9.2 production typography correction
 
-Version 1.9.1 keeps the proven live-data, AI, Wowhead and scheduling pipeline while refining the two v1.9.0 presentation paths:
+Version 1.9.2 keeps the proven live-data, AI, Wowhead and scheduling pipeline while correcting the production Minimal Image typography:
 
 - OpenAI writes only a 35–75 word Azeroth radio bulletin; application code remains the source of every statistic;
 - the controlled JSON now includes XP, item level, professions, achievements, PvP, ranks, baselines, guild totals and precomputed story angles;
@@ -16,7 +16,8 @@ Version 1.9.1 keeps the proven live-data, AI, Wowhead and scheduling pipeline wh
 - `native_embed` provides an improved searchable text leaderboard and is the automatic fallback;
 - `components_v2` uses Discord-native containers, text displays and separators;
 - `image` retains the detailed one/two-column deterministic Pillow dashboard;
-- `minimal_image` (the default for new installations) creates a 660 px single-column PNG with flat 48 px rows, 44 px class glyphs, a large level badge, immediately adjacent 24-hour movement, heavy class-coloured names and optional deaths;
+- `minimal_image` (the default for new installations) creates a 540 px single-column PNG with flat 54 px rows, 48 px class glyphs, 46 px level badges, immediately adjacent 18 px bold 24-hour movement, 27 px bold class-coloured names and optional deaths;
+- Alpine's installed DejaVu fonts are resolved from their real production path, and a missing scalable font activates the existing native fallback instead of silently producing tiny bitmap text;
 - `table` creates a Python-native monospaced Discord table with Unicode-width alignment and mobile-conscious line lengths;
 - every mode displays the level only rather than appending `/60`; level 60 is retained internally for progress calculations;
 - no AI image generation is used for names, levels, professions or any other live statistic;
@@ -130,7 +131,7 @@ Home Assistant exposes these options:
 
 ## Database upgrade
 
-Version 1.9.1 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
+Version 1.9.2 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
 
 ## Forever API notes
 
