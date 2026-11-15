@@ -43,4 +43,48 @@ jobs:
       - name: Test publisher Git stderr handling
         shell: pwsh
         working-directory: ${{ github.workspace }}
-        run: ./tests/publish_integration.ps1
+        run: |
+          function Invoke-IntegrationTest {
+            param([string[]]$Arguments)
+
+            $previousErrorActionPreference = $ErrorActionPreference
+            $hasNativeErrorPreference = $null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue)
+            if ($hasNativeErrorPreference) {
+              $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+            }
+            try {
+              $ErrorActionPreference = "Continue"
+              if ($hasNativeErrorPreference) {
+                $PSNativeCommandUseErrorActionPreference = $false
+              }
+              $output = @(& pwsh -NoProfile -File ./tests/publish_integration.ps1 @Arguments 2>&1)
+              $exitCode = $LASTEXITCODE
+            }
+            finally {
+              $ErrorActionPreference = $previousErrorActionPreference
+              if ($hasNativeErrorPreference) {
+                $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+              }
+            }
+            return [PSCustomObject]@{ ExitCode = $exitCode; Output = $output }
+          }
+
+          $success = Invoke-IntegrationTest -Arguments @()
+          $success.Output | ForEach-Object { Write-Host "$_" }
+          if ($success.ExitCode -ne 0) {
+            throw "Publisher integration test failed with exit code $($success.ExitCode)."
+          }
+
+          $failure = Invoke-IntegrationTest -Arguments @("-ForceAssertionFailure")
+          if ($failure.ExitCode -eq 0) {
+            $failure.Output | ForEach-Object { Write-Host "$_" }
+            throw "A forced integration-test assertion failure incorrectly exited 0."
+          }
+          if (($failure.Output -join "`n") -notmatch "Forced assertion failure for exit-code verification") {
+            $failure.Output | ForEach-Object { Write-Host "$_" }
+            throw "The forced assertion failure did not surface its original message."
+          }
+
+          Write-Host "Integration test success exits 0: PASS"
+          Write-Host "Integration test assertion failure exits non-zero: PASS"
+          exit 0

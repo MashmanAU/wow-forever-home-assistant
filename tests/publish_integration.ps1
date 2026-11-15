@@ -1,5 +1,7 @@
 [CmdletBinding()]
-param()
+param(
+    [switch]$ForceAssertionFailure
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -7,6 +9,7 @@ $ErrorActionPreference = "Stop"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $publisher = Join-Path $repositoryRoot "publish.ps1"
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("wow-publisher-test-" + [Guid]::NewGuid().ToString("N"))
+$testFailure = $null
 
 function Invoke-TestGit {
     param(
@@ -70,6 +73,10 @@ function Invoke-PublisherChild {
 }
 
 try {
+    if ($ForceAssertionFailure) {
+        throw "Forced assertion failure for exit-code verification."
+    }
+
     New-Item -ItemType Directory -Path $temporaryRoot | Out-Null
     $remote = Join-Path $temporaryRoot "remote.git"
     $seed = Join-Path $temporaryRoot "seed"
@@ -143,8 +150,21 @@ try {
     Write-Host "Git informational stderr with exit code 0: PASS"
     Write-Host "Genuine Git failure with non-zero exit code: PASS"
 }
+catch {
+    $testFailure = $_
+}
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
         Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
+
+if ($null -ne $testFailure) {
+    Write-Error $testFailure -ErrorAction Continue
+    exit 1
+}
+
+# The expected failing publisher child leaves $LASTEXITCODE set to 1. An
+# explicit successful process exit prevents that deliberately tested value
+# from leaking into the integration test's own GitHub Actions result.
+exit 0

@@ -35,3 +35,10 @@ v1.9.2 fixes the actual Home Assistant-generated Minimal Image typography. The p
 - Mention-free, read-only `/daily-live-test` using the production sender.
 - GitHub tests, one-command publishing and multi-architecture GHCR builds.
 - No database schema change.
+
+## Publisher integration-test correction
+
+- The integration test now explicitly exits `0` after both expected publisher checks pass, rather than leaking the intentionally failed child publisher's `$LASTEXITCODE` into the test process.
+- Assertion and setup failures are captured, reported and explicitly exit `1` after temporary repositories are cleaned up.
+- The GitHub Actions step runs the integration test in a child PowerShell process and validates both exit paths: ordinary success must return `0`, while a forced assertion failure must return non-zero and preserve its error message.
+- The corrected `publish.ps1` Git stderr and exit-code behaviour is unchanged.
