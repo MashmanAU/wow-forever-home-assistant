@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Wowhead News</title>
+    <item>
+      <title>WoW Forever Hotfixes Improve Quest Credit</title>
+      <link>https://www.wowhead.com/news/forever-hotfixes-100002</link>
+      <pubDate>Sat, 14 Nov 2026 07:00:00 GMT</pubDate>
+      <description><![CDATA[Blizzard has posted WoW Forever realm hotfixes.]]></description>
+    </item>
+    <item>
+      <title>Retail Raid Tuning</title>
+      <link>https://www.wowhead.com/news/retail-raid-100003</link>
+      <pubDate>Sat, 14 Nov 2026 08:00:00 GMT</pubDate>
+      <description><![CDATA[Changes for retail only.]]></description>
+    </item>
+    <item>
+      <title>Old WoW Forever Headline</title>
+      <link>https://www.wowhead.com/news/old-forever-100004</link>
+      <pubDate>Thu, 12 Nov 2026 08:00:00 GMT</pubDate>
+      <description><![CDATA[Outside the lookback window.]]></description>
+    </item>
+    <item>
+      <title>Untrusted host</title>
+      <link>https://example.com/news/wow-forever</link>
+      <pubDate>Sat, 14 Nov 2026 09:00:00 GMT</pubDate>
+      <description><![CDATA[WoW Forever, but not from Wowhead.]]></description>
+    </item>
+  </channel>
+</rss>

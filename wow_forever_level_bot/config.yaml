@@ -1,0 +1,55 @@
+name: WoW Forever Level Bot
+version: "1.7.1"
+image: "ghcr.io/mashmanau/{arch}-wow-forever-level-bot"
+slug: wow_forever_level_bot
+description: Discord bot with durable WoW Forever snapshots, AI radio commentary and safe synthetic previews.
+url: https://develop.battle.net/documentation/world-of-warcraft/profile-apis
+startup: services
+boot: auto
+init: false
+arch:
+  - amd64
+  - aarch64
+options:
+  discord_token: ""
+  blizzard_client_id: ""
+  blizzard_client_secret: ""
+  log_level: INFO
+  schedule_check_seconds: 60
+  default_timezone: Australia/Sydney
+  openai_api_key: ""
+  openai_model: gpt-4.1-mini
+  commentary_enabled: true
+  commentary_max_words: 70
+  commentary_roast_level: mild
+  announcer_style: "Cheeky Azeroth sports desk and radio announcer with dry humour, short sharp observations and light roasting. Sound like you are talking to a group of mates who play WoW together. Avoid motivational newsletter language."
+  announcer_custom_notes: "Cold opens are encouraged. WoW references are welcome but do not force them. Occasional running jokes are fine. Do not finish every report with a catchphrase."
+  commentary_news_emphasis: normal
+  commentary_character_banter: normal
+  wowhead_feed_url: https://www.wowhead.com/news/rss/all
+  wowhead_lookback_hours: 24
+  wowhead_keywords: wow forever,world of warcraft forever,forever realms,forever realm,forever hardcore
+  test_channel_name: bot-stuff
+schema:
+  discord_token: password
+  blizzard_client_id: str
+  blizzard_client_secret: password
+  log_level: list(DEBUG|INFO|WARNING|ERROR|CRITICAL)
+  schedule_check_seconds: int(15,3600)
+  default_timezone: str
+  openai_api_key: password
+  openai_model: str
+  commentary_enabled: bool
+  commentary_max_words: int(40,160)
+  commentary_roast_level: list(gentle|mild|spicy)
+  announcer_style: str
+  announcer_custom_notes: str
+  commentary_news_emphasis: list(low|normal|high)
+  commentary_character_banter: list(low|normal|high)
+  wowhead_feed_url: str
+  wowhead_lookback_hours: int(1,72)
+  wowhead_keywords: str
+  test_channel_name: str
+build_from:
+  amd64: ghcr.io/home-assistant/amd64-base:3.21
+  aarch64: ghcr.io/home-assistant/aarch64-base:3.21

@@ -1,0 +1,3 @@
+"""WoW Forever Discord level bot."""
+
+__version__ = "1.7.1"

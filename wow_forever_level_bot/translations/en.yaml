@@ -1,0 +1,58 @@
+configuration:
+  discord_token:
+    name: Discord bot token
+    description: The token from the Bot page of your Discord application. Keep this secret.
+  blizzard_client_id:
+    name: Battle.net client ID
+    description: The client ID for your Battle.net API application.
+  blizzard_client_secret:
+    name: Battle.net client secret
+    description: The client secret for your Battle.net API application. Keep this secret.
+  log_level:
+    name: Log level
+    description: How much detail the app writes to its Home Assistant log.
+  schedule_check_seconds:
+    name: Schedule check interval
+    description: Seconds between checks for due daily reports. Blizzard is queried only for a due report or a user command.
+  default_timezone:
+    name: Default schedule timezone
+    description: IANA timezone used as the default by the schedule command, for example Australia/Sydney.
+  openai_api_key:
+    name: OpenAI API key
+    description: Private project key used only for the short daily radio intro. Leave blank to use deterministic fallback commentary.
+  openai_model:
+    name: OpenAI model
+    description: Responses API model used for commentary, for example gpt-4.1-mini.
+  commentary_enabled:
+    name: AI commentary
+    description: Add the radio-style commentary layer to scheduled reports. Factual reports still post if generation fails.
+  commentary_max_words:
+    name: Commentary word limit
+    description: Requested maximum length from 40 to 160 words. The radio bulletin has a hard 75-word ceiling to keep it punchy; existing higher settings remain valid.
+  commentary_roast_level:
+    name: Roast level
+    description: Friendly banter level; choose gentle, mild or spicy.
+  announcer_style:
+    name: Announcer style
+    description: Editable voice and tone preferences. Fixed factual-grounding, output-format and safety rules remain enforced in code.
+  announcer_custom_notes:
+    name: Custom style notes
+    description: Optional extra tone guidance, such as deadpan delivery or avoiding catchphrases. These notes cannot override factual or safety rules.
+  commentary_news_emphasis:
+    name: News emphasis
+    description: How readily the announcer should use a relevant supplied Wowhead headline; choose low, normal or high.
+  commentary_character_banter:
+    name: Character banter
+    description: How much friendly character-focused banter to use; choose low, normal or high.
+  wowhead_feed_url:
+    name: Wowhead RSS feed
+    description: HTTPS RSS endpoint on wowhead.com. Article pages are never fetched.
+  wowhead_lookback_hours:
+    name: Wowhead lookback
+    description: Hours of RSS headlines considered for each scheduled report.
+  wowhead_keywords:
+    name: Wowhead Forever keywords
+    description: Comma-separated phrases used to exclude unrelated WoW editions and shop news.
+  test_channel_name:
+    name: Private test channel
+    description: Exact Discord channel name allowed for /daily-post-test; default bot-stuff.
