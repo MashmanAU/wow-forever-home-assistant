@@ -48,18 +48,18 @@ class Settings:
         "forever hardcore",
     )
     test_channel_name: str = "bot-stuff"
-    leaderboard_render_mode: str = "image"
+    leaderboard_render_mode: str = "minimal_image"
     leaderboard_density: str = "standard"
-    show_rank: bool = True
-    show_race: bool = True
-    show_class: bool = True
+    show_rank: bool = False
+    show_race: bool = False
+    show_class: bool = False
     show_level: bool = True
-    show_level_progress: bool = True
+    show_level_progress: bool = False
     show_lifetime_deaths: bool = True
-    show_professions: bool = True
+    show_professions: bool = False
     show_24h_changes: bool = True
     show_7d_changes: bool = False
-    show_notable_activity: bool = True
+    show_notable_activity: bool = False
     image_columns: str = "two"
     image_theme: str = "dark_warcraft"
     use_class_colours: bool = True
@@ -96,10 +96,17 @@ class Settings:
         character_banter = os.getenv("COMMENTARY_CHARACTER_BANTER", "normal").strip().lower()
         if character_banter not in {"low", "normal", "high"}:
             raise RuntimeError("COMMENTARY_CHARACTER_BANTER must be low, normal or high")
-        render_mode = os.getenv("LEADERBOARD_RENDER_MODE", "image").strip().lower()
-        if render_mode not in {"native_embed", "components_v2", "image"}:
+        render_mode = os.getenv("LEADERBOARD_RENDER_MODE", "minimal_image").strip().lower()
+        if render_mode not in {
+            "native_embed",
+            "components_v2",
+            "image",
+            "minimal_image",
+            "table",
+        }:
             raise RuntimeError(
-                "LEADERBOARD_RENDER_MODE must be native_embed, components_v2 or image"
+                "LEADERBOARD_RENDER_MODE must be native_embed, components_v2, image, "
+                "minimal_image or table"
             )
         density = os.getenv("LEADERBOARD_DENSITY", "standard").strip().lower()
         if density not in {"compact", "standard", "detailed"}:
@@ -155,16 +162,16 @@ class Settings:
             or "bot-stuff",
             leaderboard_render_mode=render_mode,
             leaderboard_density=density,
-            show_rank=_boolean_env("SHOW_RANK", True),
-            show_race=_boolean_env("SHOW_RACE", True),
-            show_class=_boolean_env("SHOW_CLASS", True),
+            show_rank=_boolean_env("SHOW_RANK", False),
+            show_race=_boolean_env("SHOW_RACE", False),
+            show_class=_boolean_env("SHOW_CLASS", False),
             show_level=_boolean_env("SHOW_LEVEL", True),
-            show_level_progress=_boolean_env("SHOW_LEVEL_PROGRESS", True),
+            show_level_progress=_boolean_env("SHOW_LEVEL_PROGRESS", False),
             show_lifetime_deaths=_boolean_env("SHOW_LIFETIME_DEATHS", True),
-            show_professions=_boolean_env("SHOW_PROFESSIONS", True),
+            show_professions=_boolean_env("SHOW_PROFESSIONS", False),
             show_24h_changes=_boolean_env("SHOW_24H_CHANGES", True),
             show_7d_changes=_boolean_env("SHOW_7D_CHANGES", False),
-            show_notable_activity=_boolean_env("SHOW_NOTABLE_ACTIVITY", True),
+            show_notable_activity=_boolean_env("SHOW_NOTABLE_ACTIVITY", False),
             image_columns=image_columns,
             image_theme=image_theme,
             use_class_colours=_boolean_env("USE_CLASS_COLOURS", True),

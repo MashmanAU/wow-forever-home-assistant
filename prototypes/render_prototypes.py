@@ -12,8 +12,10 @@ sys.path.insert(0, str(ROOT / "wow_forever_level_bot"))
 
 from wow_forever_bot.config import Settings
 from wow_forever_bot.image_renderer import render_leaderboard_png
+from wow_forever_bot.minimal_image_renderer import render_minimal_leaderboard_png
 from wow_forever_bot.models import CharacterSnapshot, DeathCounters, ProfessionProgress, SnapshotProgress
 from wow_forever_bot.presentation import components_text_blocks, leaderboard_description
+from wow_forever_bot.table_renderer import leaderboard_table
 
 HERE = Path(__file__).resolve().parent
 
@@ -45,14 +47,29 @@ def load_rows() -> tuple[tuple[SnapshotProgress, ...], datetime]:
             deaths=DeathCounters(lifetime=item["deaths"]),
             professions=professions,
         )
-        rows.append(SnapshotProgress(snapshot=snapshot, rank=item["rank"]))
+        rows.append(
+            SnapshotProgress(
+                snapshot=snapshot,
+                rank=item["rank"],
+                levels_24h=item.get("levels_24h"),
+            )
+        )
     return tuple(rows), captured
 
 
 def main() -> None:
     rows, captured = load_rows()
     base = Settings("prototype", "prototype", "prototype")
-    settings = replace(base, leaderboard_density="standard")
+    settings = replace(
+        base,
+        leaderboard_density="standard",
+        show_rank=True,
+        show_race=True,
+        show_class=True,
+        show_level_progress=True,
+        show_professions=True,
+        show_notable_activity=True,
+    )
     description = leaderboard_description(rows, options=settings)
     native_payload = {
         "content": "📻 **WoW Forever daily**\n\n[announcer commentary remains normal Discord message text]",
@@ -103,6 +120,23 @@ def main() -> None:
 
     png = render_leaderboard_png(rows, options=settings, generated_at=captured)
     (HERE / "image_two_column_preview.png").write_bytes(png)
+
+    minimal_settings = replace(base, leaderboard_density="standard")
+    minimal_png = render_minimal_leaderboard_png(
+        rows,
+        options=minimal_settings,
+        generated_at=captured,
+    )
+    (HERE / "minimal_image_preview.png").write_bytes(minimal_png)
+
+    table = leaderboard_table(rows, options=minimal_settings)
+    (HERE / "table_preview.md").write_text(
+        "# Native Discord monospaced table preview\n\n"
+        "The preview uses the compact default fields and illustrative 24-hour level movement.\n\n"
+        "```text\n"
+        + table
+        + "\n```\n"
+    )
 
 
 if __name__ == "__main__":

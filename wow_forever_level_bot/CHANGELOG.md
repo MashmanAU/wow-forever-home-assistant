@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.0
+
+- Adds a narrow single-column `minimal_image` renderer optimised for Discord inline reading, with 50 px deterministic class glyphs, large class-coloured names, a level badge and adjacent 24-hour movement.
+- Adds a Python-native `table` renderer with Character → Level → 24h → optional 7d → Deaths ordering, `-` for no change, Unicode display-width alignment, mobile-conscious widths and safe multi-embed chunking.
+- Keeps race, class text, professions, seven-day changes, level progress and notable activity as optional secondary information rather than crowding the minimal primary row.
+- Preserves the existing native embed, Components V2 and detailed image renderers, along with their current Home Assistant controls.
+- Extends deterministic tests and 18-character prototypes for both new modes.
+- Preserves live Blizzard data, OpenAI commentary, filtered Wowhead RSS, schedules, production `@everyone`, mention-free read-only `/daily-live-test`, GitHub tests and multi-architecture GHCR publishing.
+- Makes no database schema change.
+
 ## 1.8.0
 
 - Restores the missing Home Assistant render-mode, density and field-level display controls.

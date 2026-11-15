@@ -1,7 +1,7 @@
 name: WoW Forever Level Bot
-version: "1.8.0"
+version: "1.9.0"
 slug: wow_forever_level_bot
-description: Discord bot with configurable native, Components V2 and deterministic image leaderboards.
+description: Discord bot with native, table, Components V2 and deterministic image leaderboards.
 url: https://develop.battle.net/documentation/world-of-warcraft/profile-apis
 startup: services
 boot: auto
@@ -30,18 +30,18 @@ options:
   wowhead_lookback_hours: 24
   wowhead_keywords: wow forever,world of warcraft forever,forever realms,forever realm,forever hardcore
   test_channel_name: bot-stuff
-  leaderboard_render_mode: image
+  leaderboard_render_mode: minimal_image
   leaderboard_density: standard
-  show_rank: true
-  show_race: true
-  show_class: true
+  show_rank: false
+  show_race: false
+  show_class: false
   show_level: true
-  show_level_progress: true
+  show_level_progress: false
   show_lifetime_deaths: true
-  show_professions: true
+  show_professions: false
   show_24h_changes: true
   show_7d_changes: false
-  show_notable_activity: true
+  show_notable_activity: false
   image_columns: two
   image_theme: dark_warcraft
   use_class_colours: true
@@ -67,7 +67,7 @@ schema:
   wowhead_lookback_hours: int(1,72)
   wowhead_keywords: str
   test_channel_name: str
-  leaderboard_render_mode: list(native_embed|components_v2|image)
+  leaderboard_render_mode: list(minimal_image|table|native_embed|components_v2|image)
   leaderboard_density: list(compact|standard|detailed)
   show_rank: bool
   show_race: bool

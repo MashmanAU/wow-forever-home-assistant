@@ -7,10 +7,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_release_versions_and_home_assistant_build_metadata() -> None:
-    assert __version__ == "1.8.0"
+    assert __version__ == "1.9.0"
     config = (ROOT / "config.yaml").read_text()
-    assert 'version: "1.8.0"' in config
-    assert 'version = "1.8.0"' in (ROOT / "pyproject.toml").read_text()
+    assert 'version: "1.9.0"' in config
+    assert 'version = "1.9.0"' in (ROOT / "pyproject.toml").read_text()
     assert "image: ghcr.io/mashmanau/{arch}-wow-forever-level-bot" in config
     assert not (ROOT / "build.yaml").exists()
 
@@ -97,7 +97,7 @@ def test_release_contains_short_radio_and_history_defaults() -> None:
     assert save_position > send_position
 
 
-def test_daily_leaderboard_has_three_modes_and_native_fallback() -> None:
+def test_daily_leaderboard_has_five_modes_and_native_fallback() -> None:
     source = (ROOT / "wow_forever_bot" / "bot.py").read_text()
     presentation = (ROOT / "wow_forever_bot" / "presentation.py").read_text()
     embed_renderer = source.split("def _leaderboard_embed", 1)[1].split(
@@ -106,8 +106,12 @@ def test_daily_leaderboard_has_three_modes_and_native_fallback() -> None:
     assert "leaderboard_description(" in embed_renderer
     assert 'title="🏆 WoW Forever leaderboard"' in embed_renderer
     assert 'return first_line + "\\n↳ "' in presentation
-    assert 'mode == "image"' in source
+    assert 'mode in {"image", "minimal_image"}' in source
+    assert '"minimal_image"' in source
+    assert 'mode == "table"' in source
     assert 'mode == "components_v2"' in source
+    assert "render_minimal_leaderboard_png" in source
+    assert "leaderboard_table_code_blocks" in source
     assert "native text fallback" in source
 
 

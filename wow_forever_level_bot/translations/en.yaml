@@ -59,34 +59,34 @@ configuration:
 
   leaderboard_render_mode:
     name: Leaderboard render mode
-    description: Choose image, Discord Components V2 or the native text embed. Native embed is also the automatic fallback.
+    description: Choose minimal image, monospaced table, current image, Discord Components V2 or native embed. Native embed remains the automatic fallback.
   leaderboard_density:
     name: Leaderboard density
     description: Choose compact, standard or detailed character rows.
   show_rank:
     name: Show rank
-    description: Display each character's leaderboard position and available movement.
+    description: Display each character's leaderboard position. Minimal image places it on the class badge; table prefixes it to the character name.
   show_race:
     name: Show race
-    description: Display the character race.
+    description: Display the character race as secondary information. Off by default in the minimal image and table layouts.
   show_class:
     name: Show class
-    description: Display the character class.
+    description: Display the character class as text. The minimal image can still show its class icon when this is off.
   show_level:
     name: Show level
     description: Display the factual current level out of 60.
   show_level_progress:
     name: Show level progress
-    description: Display a native or graphical progress bar towards level 60.
+    description: Display progress towards level 60 as an optional secondary field or graphical bar.
   show_lifetime_deaths:
     name: Show lifetime deaths
     description: Display the lifetime death counter when the API supplies it.
   show_professions:
     name: Show professions
-    description: Display current profession skill values.
+    description: Display current profession skill values as secondary information.
   show_24h_changes:
     name: Show 24-hour changes
-    description: Display non-zero changes derived from the stored 24-hour baseline.
+    description: Display level movement derived from the stored 24-hour baseline. A dash means no change.
   show_7d_changes:
     name: Show seven-day changes
     description: Display non-zero level change derived from the stored seven-day baseline.
@@ -95,7 +95,7 @@ configuration:
     description: Display available achievements and profession gains in detailed mode.
   image_columns:
     name: Image columns
-    description: Render the image as one column or a shorter two-column leaderboard.
+    description: Render the detailed image as one or two columns. Minimal image is always a narrow single column.
   image_theme:
     name: Image theme
     description: Choose dark Warcraft, parchment or minimal styling for the deterministic PNG.
@@ -104,7 +104,7 @@ configuration:
     description: Colour character names and image progress bars with the standard class palette.
   show_class_icons:
     name: Show class badges
-    description: Display deterministic class-initial badges in image mode.
+    description: Display deterministic class glyphs in minimal image and class-initial badges in detailed image mode.
   show_profession_icons:
     name: Show profession icons
     description: Display native profession emoji or deterministic abbreviations beside profession skills.

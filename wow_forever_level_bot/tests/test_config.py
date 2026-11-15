@@ -17,10 +17,13 @@ def test_settings_defaults(monkeypatch) -> None:
     settings = Settings.from_env()
     assert settings.default_timezone == "Australia/Sydney"
     assert settings.schedule_check_seconds == 60
-    assert settings.leaderboard_render_mode == "image"
+    assert settings.leaderboard_render_mode == "minimal_image"
     assert settings.leaderboard_density == "standard"
     assert settings.image_columns == "two"
     assert settings.show_7d_changes is False
+    assert settings.show_race is False
+    assert settings.show_professions is False
+    assert settings.show_notable_activity is False
 
 
 def test_ai_and_preview_defaults(monkeypatch) -> None:
@@ -68,3 +71,12 @@ def test_display_settings_are_configurable(monkeypatch) -> None:
     assert settings.show_professions is False
     assert settings.show_7d_changes is True
     assert settings.image_theme == "parchment"
+
+
+@pytest.mark.parametrize("mode", ("minimal_image", "table", "native_embed", "components_v2", "image"))
+def test_every_render_mode_is_selectable(monkeypatch, mode: str) -> None:
+    monkeypatch.setenv("DISCORD_TOKEN", "discord")
+    monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")
+    monkeypatch.setenv("BLIZZARD_CLIENT_SECRET", "secret")
+    monkeypatch.setenv("LEADERBOARD_RENDER_MODE", mode)
+    assert Settings.from_env().leaderboard_render_mode == mode

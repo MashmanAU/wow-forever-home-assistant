@@ -29,8 +29,10 @@ from .models import (
     TrackedCharacter,
 )
 from .image_renderer import render_leaderboard_png
+from .minimal_image_renderer import render_minimal_leaderboard_png
 from .news import WowheadNewsClient
 from .presentation import daily_message_content, leaderboard_description
+from .table_renderer import leaderboard_table_code_blocks
 from .scheduling import (
     next_daily_run,
     parse_daily_time,
@@ -263,6 +265,28 @@ class ForeverCommands(commands.Cog):
             embeds.append(news)
         return embeds
 
+    def _table_embeds(self, bundle: DailyBundle) -> list[discord.Embed]:
+        blocks = leaderboard_table_code_blocks(
+            bundle.progress,
+            options=self.bot.settings,
+        )
+        embeds = [
+            discord.Embed(
+                title=(
+                    "🏆 WoW Forever leaderboard"
+                    if index == 0
+                    else "🏆 WoW Forever leaderboard — continued"
+                ),
+                description=block,
+                colour=discord.Colour.blurple(),
+            )
+            for index, block in enumerate(blocks)
+        ]
+        news = self._news_embed(bundle)
+        if news is not None:
+            embeds.append(news)
+        return embeds
+
     async def _send_daily_report(
         self,
         channel: discord.abc.Messageable,
@@ -288,9 +312,14 @@ class ForeverCommands(commands.Cog):
         mode = self.bot.settings.leaderboard_render_mode
         news = self._news_embed(bundle)
 
-        if mode == "image":
+        if mode in {"image", "minimal_image"}:
             try:
-                png = render_leaderboard_png(
+                renderer = (
+                    render_minimal_leaderboard_png
+                    if mode == "minimal_image"
+                    else render_leaderboard_png
+                )
+                png = renderer(
                     bundle.progress,
                     options=self.bot.settings,
                     generated_at=bundle.generated_at,
@@ -299,15 +328,38 @@ class ForeverCommands(commands.Cog):
                     content=content,
                     file=discord.File(
                         io.BytesIO(png),
-                        filename="wow-forever-leaderboard.png",
+                        filename=(
+                            "wow-forever-minimal-leaderboard.png"
+                            if mode == "minimal_image"
+                            else "wow-forever-leaderboard.png"
+                        ),
                     ),
                     embeds=[news] if news is not None else [],
                     allowed_mentions=mentions,
                 )
-                return "image"
+                return mode
             except Exception:
                 LOGGER.exception(
                     "Image leaderboard rendering failed; using the native text fallback"
+                )
+                await channel.send(
+                    content=content,
+                    embeds=self._daily_embeds(bundle),
+                    allowed_mentions=mentions,
+                )
+                return "native_embed_fallback"
+
+        if mode == "table":
+            try:
+                await channel.send(
+                    content=content,
+                    embeds=self._table_embeds(bundle),
+                    allowed_mentions=mentions,
+                )
+                return "table"
+            except Exception:
+                LOGGER.exception(
+                    "Table leaderboard rendering failed; using the native text fallback"
                 )
                 await channel.send(
                     content=content,

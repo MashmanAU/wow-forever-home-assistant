@@ -71,6 +71,8 @@ def _font_path(*names: str) -> str | None:
     roots = (
         Path("/usr/share/fonts/TTF"),
         Path("/usr/share/fonts/truetype/dejavu"),
+        Path("/usr/share/fonts/dejavu-sans-fonts"),
+        Path("/usr/share/fonts/liberation"),
         Path(__file__).with_name("assets") / "fonts",
     )
     for root in roots:
