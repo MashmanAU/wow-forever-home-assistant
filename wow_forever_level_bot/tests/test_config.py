@@ -17,6 +17,10 @@ def test_settings_defaults(monkeypatch) -> None:
     settings = Settings.from_env()
     assert settings.default_timezone == "Australia/Sydney"
     assert settings.schedule_check_seconds == 60
+    assert settings.leaderboard_render_mode == "image"
+    assert settings.leaderboard_density == "standard"
+    assert settings.image_columns == "two"
+    assert settings.show_7d_changes is False
 
 
 def test_ai_and_preview_defaults(monkeypatch) -> None:
@@ -47,3 +51,20 @@ def test_personality_settings_are_configurable(monkeypatch) -> None:
     assert settings.announcer_custom_notes == "No catchphrases."
     assert settings.commentary_news_emphasis == "high"
     assert settings.commentary_character_banter == "low"
+
+
+def test_display_settings_are_configurable(monkeypatch) -> None:
+    monkeypatch.setenv("DISCORD_TOKEN", "discord")
+    monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")
+    monkeypatch.setenv("BLIZZARD_CLIENT_SECRET", "secret")
+    monkeypatch.setenv("LEADERBOARD_RENDER_MODE", "components_v2")
+    monkeypatch.setenv("LEADERBOARD_DENSITY", "compact")
+    monkeypatch.setenv("SHOW_PROFESSIONS", "false")
+    monkeypatch.setenv("SHOW_7D_CHANGES", "true")
+    monkeypatch.setenv("IMAGE_THEME", "parchment")
+    settings = Settings.from_env()
+    assert settings.leaderboard_render_mode == "components_v2"
+    assert settings.leaderboard_density == "compact"
+    assert settings.show_professions is False
+    assert settings.show_7d_changes is True
+    assert settings.image_theme == "parchment"

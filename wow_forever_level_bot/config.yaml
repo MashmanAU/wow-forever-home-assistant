@@ -1,8 +1,7 @@
 name: WoW Forever Level Bot
-version: "1.7.1"
-image: "ghcr.io/mashmanau/{arch}-wow-forever-level-bot"
+version: "1.8.0"
 slug: wow_forever_level_bot
-description: Discord bot with durable WoW Forever snapshots, AI radio commentary and safe synthetic previews.
+description: Discord bot with configurable native, Components V2 and deterministic image leaderboards.
 url: https://develop.battle.net/documentation/world-of-warcraft/profile-apis
 startup: services
 boot: auto
@@ -10,6 +9,7 @@ init: false
 arch:
   - amd64
   - aarch64
+image: ghcr.io/mashmanau/{arch}-wow-forever-level-bot
 options:
   discord_token: ""
   blizzard_client_id: ""
@@ -30,6 +30,23 @@ options:
   wowhead_lookback_hours: 24
   wowhead_keywords: wow forever,world of warcraft forever,forever realms,forever realm,forever hardcore
   test_channel_name: bot-stuff
+  leaderboard_render_mode: image
+  leaderboard_density: standard
+  show_rank: true
+  show_race: true
+  show_class: true
+  show_level: true
+  show_level_progress: true
+  show_lifetime_deaths: true
+  show_professions: true
+  show_24h_changes: true
+  show_7d_changes: false
+  show_notable_activity: true
+  image_columns: two
+  image_theme: dark_warcraft
+  use_class_colours: true
+  show_class_icons: true
+  show_profession_icons: true
 schema:
   discord_token: password
   blizzard_client_id: str
@@ -50,6 +67,23 @@ schema:
   wowhead_lookback_hours: int(1,72)
   wowhead_keywords: str
   test_channel_name: str
+  leaderboard_render_mode: list(native_embed|components_v2|image)
+  leaderboard_density: list(compact|standard|detailed)
+  show_rank: bool
+  show_race: bool
+  show_class: bool
+  show_level: bool
+  show_level_progress: bool
+  show_lifetime_deaths: bool
+  show_professions: bool
+  show_24h_changes: bool
+  show_7d_changes: bool
+  show_notable_activity: bool
+  image_columns: list(one|two)
+  image_theme: list(dark_warcraft|parchment|minimal)
+  use_class_colours: bool
+  show_class_icons: bool
+  show_profession_icons: bool
 build_from:
   amd64: ghcr.io/home-assistant/amd64-base:3.21
   aarch64: ghcr.io/home-assistant/aarch64-base:3.21

@@ -1,7 +1,8 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.env
-*.db
-*.sqlite*
-options.json
+.venv/
+dist/
+build/
+*.egg-info/
+.DS_Store

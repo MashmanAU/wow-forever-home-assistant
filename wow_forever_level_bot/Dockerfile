@@ -1,7 +1,7 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-RUN apk add --no-cache python3 py3-pip tzdata \
+RUN apk add --no-cache python3 py3-pip tzdata font-dejavu \
     && python3 -m pip install --no-cache-dir --break-system-packages --upgrade pip
 
 WORKDIR /app

@@ -7,9 +7,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_release_versions_and_home_assistant_build_metadata() -> None:
-    assert __version__ == "1.7.1"
-    assert 'version: "1.7.1"' in (ROOT / "config.yaml").read_text()
-    assert 'version = "1.7.1"' in (ROOT / "pyproject.toml").read_text()
+    assert __version__ == "1.8.0"
+    config = (ROOT / "config.yaml").read_text()
+    assert 'version: "1.8.0"' in config
+    assert 'version = "1.8.0"' in (ROOT / "pyproject.toml").read_text()
+    assert "image: ghcr.io/mashmanau/{arch}-wow-forever-level-bot" in config
+    assert not (ROOT / "build.yaml").exists()
 
 
 def test_authorization_headers_use_runtime_bearer_values() -> None:
@@ -53,8 +56,7 @@ def test_daily_live_test_is_hard_locked_and_has_no_persistence_calls() -> None:
     assert "update_character(" not in command
     assert "save_commentary(" not in command
     assert "set_schedule(" not in command
-    assert "content=self._daily_message_content(bundle)" in command
-    assert "embeds=self._daily_embeds(bundle)" in command
+    assert "self._send_daily_report(" in command
     fetch_helper = source.split("async def _fetch_live_snapshots_read_only", 1)[1].split(
         "@staticmethod", 1
     )[0]
@@ -95,26 +97,66 @@ def test_release_contains_short_radio_and_history_defaults() -> None:
     assert save_position > send_position
 
 
-def test_daily_leaderboard_is_fixed_two_line_native_markdown_in_one_embed() -> None:
+def test_daily_leaderboard_has_three_modes_and_native_fallback() -> None:
     source = (ROOT / "wow_forever_bot" / "bot.py").read_text()
     presentation = (ROOT / "wow_forever_bot" / "presentation.py").read_text()
-    embed_renderer = source.split("def _daily_embeds", 1)[1].split(
-        "@tasks.loop", 1
+    embed_renderer = source.split("def _leaderboard_embed", 1)[1].split(
+        "@staticmethod", 1
     )[0]
-    assert "leaderboard_description(progress)" in embed_renderer
-    assert "chunk_markdown_blocks" not in embed_renderer
+    assert "leaderboard_description(" in embed_renderer
     assert 'title="🏆 WoW Forever leaderboard"' in embed_renderer
     assert 'return first_line + "\\n↳ "' in presentation
-    assert "colour" not in presentation.casefold()
+    assert 'mode == "image"' in source
+    assert 'mode == "components_v2"' in source
+    assert "native text fallback" in source
+
+
+def test_home_assistant_exposes_display_customisation() -> None:
+    config = (ROOT / "config.yaml").read_text()
+    run = (ROOT / "run.sh").read_text()
+    for field in (
+        "leaderboard_render_mode",
+        "leaderboard_density",
+        "show_rank",
+        "show_race",
+        "show_class",
+        "show_level",
+        "show_level_progress",
+        "show_lifetime_deaths",
+        "show_professions",
+        "show_24h_changes",
+        "show_7d_changes",
+        "show_notable_activity",
+        "image_columns",
+        "image_theme",
+        "use_class_colours",
+        "show_class_icons",
+        "show_profession_icons",
+    ):
+        assert field in config
+        assert field.upper() in run
+
+
+def test_schedule_and_live_test_share_the_exact_delivery_method() -> None:
+    source = (ROOT / "wow_forever_bot" / "bot.py").read_text()
+    schedule_worker = source.split("async def schedule_worker", 1)[1].split(
+        "@schedule_worker.before_loop", 1
+    )[0]
+    live_test = source.split('name="daily-live-test"', 1)[1].split(
+        'name="schedule"', 1
+    )[0]
+    assert "self._send_daily_report(" in schedule_worker
+    assert "self._send_daily_report(" in live_test
 
 
 def test_daily_commentary_is_plain_message_text_without_public_debug_footers() -> None:
     source = (ROOT / "wow_forever_bot" / "bot.py").read_text()
     presentation = (ROOT / "wow_forever_bot" / "presentation.py").read_text()
-    embed_renderer = source.split("def _daily_embeds", 1)[1].split(
+    delivery = source.split("async def _send_daily_report", 1)[1].split(
         "@tasks.loop", 1
     )[0]
     assert "bundle.commentary.text" in presentation
-    assert "bundle.commentary.text" not in embed_renderer
-    assert "set_footer" not in embed_renderer
-    assert "if bundle.news:" in embed_renderer
+    assert "bundle.commentary.text" not in delivery
+    assert "normal Discord message" in delivery
+    assert "set_footer" not in delivery
+    assert "_news_embed(bundle)" in delivery

@@ -1,27 +1,28 @@
 name: Build and publish app images
+
 on:
-  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "wow_forever_level_bot/**"
       - ".github/workflows/build.yml"
+  workflow_dispatch:
+
 permissions:
   contents: read
   packages: write
+
 jobs:
   build:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: amd64
             platform: linux/amd64
-            base: ghcr.io/home-assistant/amd64-base:3.21
           - arch: aarch64
             platform: linux/arm64
-            base: ghcr.io/home-assistant/aarch64-base:3.21
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -31,22 +32,25 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - id: version
+      - name: Read app version
+        id: app
         shell: bash
         run: |
-          VERSION=$(grep '^version:' wow_forever_level_bot/config.yaml | head -1 | sed -E 's/version:[[:space:]]*["'"'"']?([^"'"'"']+)["'"'"']?$/\1/')
-          test -n "$VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@v6
+          version=$(awk -F'"' '/^version:/ {print $2; exit}' wow_forever_level_bot/config.yaml)
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Build and publish ${{ matrix.arch }}
+        uses: docker/build-push-action@v6
         with:
           context: wow_forever_level_bot
+          file: wow_forever_level_bot/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
           build-args: |
-            BUILD_FROM=${{ matrix.base }}
+            BUILD_FROM=ghcr.io/home-assistant/${{ matrix.arch }}-base:3.21
           tags: |
-            ghcr.io/mashmanau/${{ matrix.arch }}-wow-forever-level-bot:${{ steps.version.outputs.version }}
+            ghcr.io/mashmanau/${{ matrix.arch }}-wow-forever-level-bot:${{ steps.app.outputs.version }}
             ghcr.io/mashmanau/${{ matrix.arch }}-wow-forever-level-bot:latest
           labels: |
             org.opencontainers.image.source=https://github.com/MashmanAU/wow-forever-home-assistant
-            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.version=${{ steps.app.outputs.version }}

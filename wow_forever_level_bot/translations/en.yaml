@@ -56,3 +56,55 @@ configuration:
   test_channel_name:
     name: Private test channel
     description: Exact Discord channel name allowed for /daily-post-test; default bot-stuff.
+
+  leaderboard_render_mode:
+    name: Leaderboard render mode
+    description: Choose image, Discord Components V2 or the native text embed. Native embed is also the automatic fallback.
+  leaderboard_density:
+    name: Leaderboard density
+    description: Choose compact, standard or detailed character rows.
+  show_rank:
+    name: Show rank
+    description: Display each character's leaderboard position and available movement.
+  show_race:
+    name: Show race
+    description: Display the character race.
+  show_class:
+    name: Show class
+    description: Display the character class.
+  show_level:
+    name: Show level
+    description: Display the factual current level out of 60.
+  show_level_progress:
+    name: Show level progress
+    description: Display a native or graphical progress bar towards level 60.
+  show_lifetime_deaths:
+    name: Show lifetime deaths
+    description: Display the lifetime death counter when the API supplies it.
+  show_professions:
+    name: Show professions
+    description: Display current profession skill values.
+  show_24h_changes:
+    name: Show 24-hour changes
+    description: Display non-zero changes derived from the stored 24-hour baseline.
+  show_7d_changes:
+    name: Show seven-day changes
+    description: Display non-zero level change derived from the stored seven-day baseline.
+  show_notable_activity:
+    name: Show notable activity
+    description: Display available achievements and profession gains in detailed mode.
+  image_columns:
+    name: Image columns
+    description: Render the image as one column or a shorter two-column leaderboard.
+  image_theme:
+    name: Image theme
+    description: Choose dark Warcraft, parchment or minimal styling for the deterministic PNG.
+  use_class_colours:
+    name: Use class colours
+    description: Colour character names and image progress bars with the standard class palette.
+  show_class_icons:
+    name: Show class badges
+    description: Display deterministic class-initial badges in image mode.
+  show_profession_icons:
+    name: Show profession icons
+    description: Display native profession emoji or deterministic abbreviations beside profession skills.

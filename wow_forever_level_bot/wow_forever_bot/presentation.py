@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+from typing import Any
+
 from .daily import DailyBundle
 from .models import SnapshotProgress
 
@@ -21,9 +24,48 @@ PROFESSION_EMOJIS = {
     "tailoring": "🧵",
 }
 
+CLASS_COLOURS = {
+    "death knight": 0xC41E3A,
+    "demon hunter": 0xA330C9,
+    "druid": 0xFF7C0A,
+    "evoker": 0x33937F,
+    "hunter": 0xAAD372,
+    "mage": 0x3FC7EB,
+    "monk": 0x00FF98,
+    "paladin": 0xF48CBA,
+    "priest": 0xFFFFFF,
+    "rogue": 0xFFF468,
+    "shaman": 0x0070DD,
+    "warlock": 0x8788EE,
+    "warrior": 0xC69B6D,
+}
+
+_DEFAULT_OPTIONS = SimpleNamespace(
+    leaderboard_density="standard",
+    show_rank=True,
+    show_race=True,
+    show_class=True,
+    show_level=True,
+    show_level_progress=True,
+    show_lifetime_deaths=True,
+    show_professions=True,
+    show_24h_changes=True,
+    show_7d_changes=False,
+    show_notable_activity=True,
+    show_profession_icons=True,
+)
+
+
+def _option(options: Any | None, name: str, default: Any) -> Any:
+    return getattr(options or _DEFAULT_OPTIONS, name, default)
+
 
 def profession_icon(name: str) -> str:
     return PROFESSION_EMOJIS.get(name.casefold(), "🛠️")
+
+
+def class_colour(name: str | None) -> int:
+    return CLASS_COLOURS.get((name or "").casefold(), 0x5865F2)
 
 
 def _signed(value: int | float, *, decimals: int = 0) -> str:
@@ -33,24 +75,38 @@ def _signed(value: int | float, *, decimals: int = 0) -> str:
     return f"{value:+,}"
 
 
-def _identity_line(row: SnapshotProgress, *, minimal: bool = False) -> str:
+def _progress_bar(level: int, *, width: int = 10) -> str:
+    filled = max(0, min(width, round(level / 60 * width)))
+    return "█" * filled + "░" * (width - filled)
+
+
+def _identity_line(row: SnapshotProgress, options: Any, *, markdown: bool = True) -> str:
     snapshot = row.snapshot
-    if row.rank is not None:
+    bold = (lambda value: f"**{value}**") if markdown else (lambda value: value)
+    identity_parts: list[str] = []
+    if _option(options, "show_rank", True) and row.rank is not None:
         movement = ""
         if row.rank_change:
             movement = f" {'↑' if row.rank_change > 0 else '↓'}{abs(row.rank_change)}"
-        identity = f"**#{row.rank} {snapshot.display_name}**{movement}"
+        identity_parts.append(bold(f"#{row.rank} {snapshot.display_name}") + movement)
     else:
-        identity = f"**{snapshot.display_name}**"
+        identity_parts.append(bold(snapshot.display_name))
 
-    if not minimal:
-        context = [item for item in (snapshot.race, snapshot.character_class) if item]
-        if context:
-            identity += " · " + " ".join(context)
-    return f"{identity} · Lv **{snapshot.level}/60**"
+    context: list[str] = []
+    if _option(options, "show_race", True) and snapshot.race:
+        context.append(snapshot.race)
+    if _option(options, "show_class", True) and snapshot.character_class:
+        context.append(snapshot.character_class)
+    if context:
+        identity_parts.append(" ".join(context))
+    if _option(options, "show_level", True):
+        identity_parts.append(f"Lv {bold(f'{snapshot.level}/60')}")
+    if _option(options, "show_level_progress", True):
+        identity_parts.append(f"`{_progress_bar(snapshot.level)}`")
+    return " · ".join(identity_parts)
 
 
-def _profession_facts(row: SnapshotProgress, *, limit: int) -> list[str]:
+def _profession_facts(row: SnapshotProgress, options: Any, *, limit: int) -> list[str]:
     seen: set[str] = set()
     facts: list[str] = []
     for profession in row.snapshot.professions:
@@ -62,41 +118,33 @@ def _profession_facts(row: SnapshotProgress, *, limit: int) -> list[str]:
         skill = f"{profession.skill_points:,}"
         if profession.max_skill_points is not None:
             skill += f"/{profession.max_skill_points:,}"
-        facts.append(f"{profession_icon(name)} {name} **{skill}**")
+        icon = profession_icon(name) + " " if _option(options, "show_profession_icons", True) else ""
+        facts.append(f"{icon}{name} **{skill}**")
         if len(facts) == limit:
             break
-    remaining = len(
-        {
-            profession.profession_name.casefold()
-            for profession in row.snapshot.professions
-        }
-    ) - len(facts)
+    remaining = len({p.profession_name.casefold() for p in row.snapshot.professions}) - len(facts)
     if remaining > 0:
         facts.append(f"+{remaining} profession{'s' if remaining != 1 else ''}")
     return facts
 
 
-def _delta_facts(row: SnapshotProgress, *, extended: bool) -> list[str]:
+def _delta_facts(row: SnapshotProgress, options: Any, *, detailed: bool) -> list[str]:
     facts: list[str] = []
-    daily: list[str] = []
-    if row.levels_24h is not None:
-        daily.append(f"Lv {_signed(row.levels_24h)}")
-    if (
-        extended
-        and row.experience_24h is not None
-        and row.experience_24h > 0
-        and not row.levels_24h
-    ):
-        daily.append(f"XP {_signed(row.experience_24h)}")
-    if row.deaths_24h:
-        daily.append(f"💀 {_signed(row.deaths_24h)}")
-    if extended and row.honorable_kills_24h:
-        daily.append(f"HK {_signed(row.honorable_kills_24h)}")
-    if extended and row.average_item_level_change_24h:
-        daily.append(f"iLvl {_signed(row.average_item_level_change_24h, decimals=1)}")
-    if daily:
-        facts.append("24h " + ", ".join(daily))
-    if row.levels_7d is not None:
+    if _option(options, "show_24h_changes", True):
+        daily: list[str] = []
+        if row.levels_24h:
+            daily.append(f"Lv {_signed(row.levels_24h)}")
+        if detailed and row.experience_24h and not row.levels_24h:
+            daily.append(f"XP {_signed(row.experience_24h)}")
+        if row.deaths_24h:
+            daily.append(f"💀 {_signed(row.deaths_24h)}")
+        if detailed and row.honorable_kills_24h:
+            daily.append(f"HK {_signed(row.honorable_kills_24h)}")
+        if detailed and row.average_item_level_change_24h:
+            daily.append(f"iLvl {_signed(row.average_item_level_change_24h, decimals=1)}")
+        if daily:
+            facts.append("24h " + ", ".join(daily))
+    if _option(options, "show_7d_changes", False) and row.levels_7d:
         facts.append(f"7d Lv {_signed(row.levels_7d)}")
     return facts
 
@@ -114,57 +162,89 @@ def _activity_facts(row: SnapshotProgress) -> list[str]:
     return activity
 
 
-def leaderboard_block(row: SnapshotProgress, *, density: str = "full") -> str:
-    """Return exactly two Discord Markdown lines for one character."""
+def leaderboard_block(
+    row: SnapshotProgress,
+    *,
+    density: str | None = None,
+    options: Any | None = None,
+) -> str:
+    """Render one configurable, deterministic Discord Markdown character block."""
 
-    minimal = density == "minimal"
-    first_line = _identity_line(row, minimal=minimal)
-    lifetime = row.snapshot.deaths.lifetime
-    second_line = [f"💀 **{lifetime:,}**" if lifetime is not None else "💀 **n/a**"]
+    options = options or _DEFAULT_OPTIONS
+    requested = density or _option(options, "leaderboard_density", "standard")
+    density_name = {
+        "full": "detailed",
+        "condensed": "standard",
+        "minimal": "compact",
+    }.get(requested, requested)
+    first_line = _identity_line(row, options)
+    second_line: list[str] = []
 
-    if density == "full":
-        second_line.extend(_profession_facts(row, limit=2))
-        second_line.extend(_delta_facts(row, extended=True))
+    if _option(options, "show_lifetime_deaths", True):
+        lifetime = row.snapshot.deaths.lifetime
+        second_line.append(f"💀 **{lifetime:,}**" if lifetime is not None else "💀 **n/a**")
+    if _option(options, "show_professions", True):
+        limit = {"compact": 1, "standard": 2, "detailed": 3}.get(density_name, 2)
+        second_line.extend(_profession_facts(row, options, limit=limit))
+    second_line.extend(_delta_facts(row, options, detailed=density_name == "detailed"))
+    if density_name == "detailed" and _option(options, "show_notable_activity", True):
         second_line.extend(_activity_facts(row))
-    elif density == "condensed":
-        second_line.extend(_profession_facts(row, limit=1))
-        second_line.extend(_delta_facts(row, extended=False))
-    else:
-        second_line.extend(_delta_facts(row, extended=False))
 
+    if not second_line:
+        return first_line
     return first_line + "\n↳ " + " · ".join(second_line)
 
 
 def leaderboard_description(
     progress: tuple[SnapshotProgress, ...] | list[SnapshotProgress],
     *,
+    options: Any | None = None,
     limit: int = 4096,
 ) -> str:
-    """Render every character inside one Discord embed description."""
+    """Render every character inside one improved native Discord embed."""
 
     rows = list(progress)
     if not rows:
         return "No snapshot progress is available."
-
-    for density in ("full", "condensed", "minimal"):
-        description = "\n".join(leaderboard_block(row, density=density) for row in rows)
+    options = options or _DEFAULT_OPTIONS
+    selected = _option(options, "leaderboard_density", "standard")
+    densities = [selected] + [item for item in ("standard", "compact") if item != selected]
+    for density in densities:
+        description = "\n\n".join(
+            leaderboard_block(row, density=density, options=options) for row in rows
+        )
         if len(description) <= limit:
             return description
 
-    # Extremely large rosters still retain every name, level and death counter in
-    # one embed. Discord names and Blizzard levels are bounded, so this is the
-    # final deterministic safety reduction rather than creating another embed.
-    blocks = [
-        f"**{row.snapshot.display_name}** · Lv **{row.snapshot.level}/60**\n"
-        f"↳ 💀 **{row.snapshot.deaths.lifetime:,}**"
-        if row.snapshot.deaths.lifetime is not None
-        else f"**{row.snapshot.display_name}** · Lv **{row.snapshot.level}/60**\n↳ 💀 **n/a**"
-        for row in rows
-    ]
+    # Last-resort native fallback retains every character and the two core facts.
+    blocks = []
+    for row in rows:
+        rank = f"#{row.rank} " if row.rank is not None and _option(options, "show_rank", True) else ""
+        level = f" · Lv {row.snapshot.level}/60" if _option(options, "show_level", True) else ""
+        deaths = row.snapshot.deaths.lifetime
+        death_text = (
+            f" · 💀 {deaths:,}"
+            if deaths is not None and _option(options, "show_lifetime_deaths", True)
+            else ""
+        )
+        blocks.append(f"**{rank}{row.snapshot.display_name}**{level}{death_text}")
     description = "\n".join(blocks)
     if len(description) > limit:
         raise ValueError("The tracked roster is too large for one Discord leaderboard embed")
     return description
+
+
+def components_text_blocks(
+    progress: tuple[SnapshotProgress, ...] | list[SnapshotProgress],
+    *,
+    options: Any | None = None,
+    rows_per_block: int = 3,
+) -> list[str]:
+    """Pack rows into a small Components V2 tree well below Discord's 40-item limit."""
+
+    rows = list(progress)
+    rendered = [leaderboard_block(row, options=options) for row in rows]
+    return ["\n\n".join(rendered[i : i + rows_per_block]) for i in range(0, len(rendered), rows_per_block)]
 
 
 def daily_message_content(

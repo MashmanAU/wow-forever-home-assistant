@@ -2,9 +2,9 @@
 
 A Discord bot that verifies and tracks World of Warcraft: Forever characters through Blizzard's profile API. It supports separate tracking lists and schedules for each Discord server and stores data persistently in SQLite under `/data/wow_forever.db`.
 
-## Version 1.7.1 compact Discord leaderboard
+## Version 1.8.0 configurable visual leaderboard
 
-Version 1.7.1 keeps the proven live-data, AI, Wowhead and scheduling pipeline while replacing the daily presentation with a reliable Discord-native layout:
+Version 1.8.0 keeps the proven live-data, AI, Wowhead and scheduling pipeline while adding three factual presentation paths:
 
 - OpenAI writes only a 35–75 word Azeroth radio bulletin; application code remains the source of every statistic;
 - the controlled JSON now includes XP, item level, professions, achievements, PvP, ranks, baselines, guild totals and precomputed story angles;
@@ -12,14 +12,18 @@ Version 1.7.1 keeps the proven live-data, AI, Wowhead and scheduling pipeline wh
 - richer angles are preferred over repeating levels and deaths;
 - Wowhead ingestion is limited to RSS headline metadata from HTTPS `wowhead.com`, a bounded lookback and explicit WoW Forever keywords;
 - the AI announcer is normal Discord message text rather than an embed;
-- the leaderboard remains in one embed and uses exactly two Markdown lines per character;
+- the Home Assistant page now exposes render mode, density and individual field toggles;
+- `native_embed` provides an improved searchable text leaderboard and is the automatic fallback;
+- `components_v2` uses Discord-native containers, text displays and separators;
+- `image` (the default) creates a deterministic Pillow PNG with class colours and real graphical level bars;
+- no AI image generation is used for names, levels, professions or any other live statistic;
 - line one contains rank/name, available race/class and level progress to 60;
 - line two contains lifetime deaths, profession emoji/skill values, useful 24-hour or seven-day changes and relevant notable activity;
 - unavailable optional data is omitted cleanly, and no unsupported per-character text-colour workaround is used;
 - public technical/debug footers are removed and the Wowhead section is absent when no qualifying Forever headline exists;
 - `/daily-preview` uses one of five deterministic synthetic histories in a disposable SQLite database and responds only to the caller;
 - `/daily-post-test` combines synthetic character history with live filtered Wowhead RSS and the configured OpenAI service, is locked to the configured private test-channel name and disables every mention; and
-- `/daily-live-test` fetches every real tracked character from Blizzard, derives real changes, uses live Wowhead and OpenAI, and renders the same production layout only in `#bot-stuff`, with all mentions disabled;
+- `/daily-live-test` fetches every real tracked character from Blizzard, derives real changes, uses live Wowhead and OpenAI, and calls the exact same selected production delivery path only in `#bot-stuff`, with all mentions disabled;
 - the live test keeps current snapshots in memory: it does not update cached character rows, save snapshots, move baselines, save commentary, alter the schedule or change the next execution;
 - announcer style, custom style notes, news emphasis and character banter are editable in Home Assistant, alongside the existing roast and word-limit controls; and
 - factual grounding, structured JSON output, prompt-injection resistance, similarity checking, one-rewrite behaviour and deterministic fallback remain fixed in code;
@@ -85,6 +89,7 @@ The scheduled post uses both `content="@everyone"` and an explicit Discord allow
 - View Channels
 - Send Messages
 - Embed Links
+- Attach Files (for `image`; the bot falls back to the native embed if unavailable)
 - Read Message History
 - Use Application Commands
 - Mention @everyone, @here and All Roles
@@ -114,10 +119,16 @@ Home Assistant exposes these options:
 - `wowhead_lookback_hours` (1–72; default `24`)
 - `wowhead_keywords` (comma-separated exact topic filter)
 - `test_channel_name` (default `bot-stuff`)
+- `leaderboard_render_mode` (`native_embed`, `components_v2` or `image`; default `image`)
+- `leaderboard_density` (`compact`, `standard` or `detailed`)
+- `show_rank`, `show_race`, `show_class`, `show_level` and `show_level_progress`
+- `show_lifetime_deaths`, `show_professions`, `show_24h_changes`, `show_7d_changes` and `show_notable_activity`
+- `image_columns` (`one` or `two`) and `image_theme` (`dark_warcraft`, `parchment` or `minimal`)
+- `use_class_colours`, `show_class_icons` and `show_profession_icons`
 
 ## Database upgrade
 
-Version 1.7.1 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
+Version 1.8.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
 
 ## Forever API notes
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 from datetime import datetime, timezone
 from typing import Literal
@@ -11,6 +12,7 @@ from discord.ext import commands, tasks
 
 from .blizzard import BlizzardAPIError, BlizzardClient, CharacterNotFound
 from .commentary import CommentaryService
+from .components import build_components_v2_view
 from .config import Settings
 from .daily import (
     DailyBundle,
@@ -26,6 +28,7 @@ from .models import (
     RefreshResult,
     TrackedCharacter,
 )
+from .image_renderer import render_leaderboard_png
 from .news import WowheadNewsClient
 from .presentation import daily_message_content, leaderboard_description
 from .scheduling import (
@@ -230,26 +233,120 @@ class ForeverCommands(commands.Cog):
             notice=notice,
         )
 
-    def _daily_embeds(self, bundle: DailyBundle) -> list[discord.Embed]:
-        progress = list(bundle.progress)
-        embeds = [
-            discord.Embed(
-                title="🏆 WoW Forever leaderboard",
-                description=leaderboard_description(progress),
-                colour=discord.Colour.blurple(),
-            )
-        ]
+    def _leaderboard_embed(self, bundle: DailyBundle) -> discord.Embed:
+        return discord.Embed(
+            title="🏆 WoW Forever leaderboard",
+            description=leaderboard_description(
+                list(bundle.progress),
+                options=self.bot.settings,
+            ),
+            colour=discord.Colour.blurple(),
+        )
 
-        if bundle.news:
-            news_lines = [f"• [{item.title}]({item.url})" for item in bundle.news[:5]]
-            embeds.append(
-                discord.Embed(
-                    title="📰 Wowhead — WoW Forever",
-                    description="\n".join(news_lines),
-                    colour=discord.Colour.orange(),
+    @staticmethod
+    def _news_embed(bundle: DailyBundle) -> discord.Embed | None:
+        if not bundle.news:
+            return None
+        news_lines = [f"• [{item.title}]({item.url})" for item in bundle.news[:5]]
+        return discord.Embed(
+            title="📰 Wowhead — WoW Forever",
+            description="\n".join(news_lines),
+            colour=discord.Colour.orange(),
+        )
+
+    def _daily_embeds(self, bundle: DailyBundle) -> list[discord.Embed]:
+        """Native text rendition retained as a selectable mode and safe fallback."""
+
+        embeds = [self._leaderboard_embed(bundle)]
+        news = self._news_embed(bundle)
+        if news is not None:
+            embeds.append(news)
+        return embeds
+
+    async def _send_daily_report(
+        self,
+        channel: discord.abc.Messageable,
+        bundle: DailyBundle,
+        *,
+        mention_everyone: bool = False,
+        notice: str | None = None,
+        allowed_mentions: discord.AllowedMentions | None = None,
+    ) -> str:
+        """Send the configured production layout and return the mode actually used.
+
+        Scheduled delivery and /daily-live-test both call this method, which prevents
+        preview drift. Components V2 requires a separate normal-text commentary
+        message because Discord disables message content on Components V2 messages.
+        """
+
+        mentions = allowed_mentions or discord.AllowedMentions.none()
+        content = self._daily_message_content(
+            bundle,
+            mention_everyone=mention_everyone,
+            notice=notice,
+        )
+        mode = self.bot.settings.leaderboard_render_mode
+        news = self._news_embed(bundle)
+
+        if mode == "image":
+            try:
+                png = render_leaderboard_png(
+                    bundle.progress,
+                    options=self.bot.settings,
+                    generated_at=bundle.generated_at,
                 )
-            )
-        return embeds[:10]
+                await channel.send(
+                    content=content,
+                    file=discord.File(
+                        io.BytesIO(png),
+                        filename="wow-forever-leaderboard.png",
+                    ),
+                    embeds=[news] if news is not None else [],
+                    allowed_mentions=mentions,
+                )
+                return "image"
+            except Exception:
+                LOGGER.exception(
+                    "Image leaderboard rendering failed; using the native text fallback"
+                )
+                await channel.send(
+                    content=content,
+                    embeds=self._daily_embeds(bundle),
+                    allowed_mentions=mentions,
+                )
+                return "native_embed_fallback"
+
+        if mode == "components_v2":
+            # Commentary intentionally remains a normal Discord message.
+            await channel.send(content=content, allowed_mentions=mentions)
+            try:
+                view = build_components_v2_view(
+                    bundle.progress,
+                    options=self.bot.settings,
+                )
+                await channel.send(view=view, allowed_mentions=discord.AllowedMentions.none())
+            except Exception:
+                LOGGER.exception(
+                    "Components V2 leaderboard failed; using the native text fallback"
+                )
+                await channel.send(
+                    embed=self._leaderboard_embed(bundle),
+                    allowed_mentions=discord.AllowedMentions.none(),
+                )
+                mode = "native_embed_fallback"
+            if news is not None:
+                await channel.send(
+                    embed=news,
+                    allowed_mentions=discord.AllowedMentions.none(),
+                )
+            return mode
+
+        await channel.send(
+            content=content,
+            embeds=self._daily_embeds(bundle),
+            allowed_mentions=mentions,
+        )
+        return "native_embed"
 
     @tasks.loop(seconds=60)
     async def schedule_worker(self) -> None:
@@ -283,13 +380,29 @@ class ForeverCommands(commands.Cog):
                         LOGGER.exception(
                             "Daily commentary assembly failed; posting factual level fallback"
                         )
-                await channel.send(
-                    content=content,
-                    embeds=embeds,
-                    allowed_mentions=discord.AllowedMentions(
-                        everyone=True, users=False, roles=False, replied_user=False
-                    ),
-                )
+                if daily is not None:
+                    await self._send_daily_report(
+                        channel,
+                        daily,
+                        mention_everyone=True,
+                        allowed_mentions=discord.AllowedMentions(
+                            everyone=True,
+                            users=False,
+                            roles=False,
+                            replied_user=False,
+                        ),
+                    )
+                else:
+                    await channel.send(
+                        content=content,
+                        embeds=embeds,
+                        allowed_mentions=discord.AllowedMentions(
+                            everyone=True,
+                            users=False,
+                            roles=False,
+                            replied_user=False,
+                        ),
+                    )
                 if daily is not None:
                     try:
                         await self.bot.store.save_commentary(
@@ -538,15 +651,13 @@ class ForeverCommands(commands.Cog):
             scenario=scenario,
             news_lookback_hours=self.bot.settings.wowhead_lookback_hours,
         )
-        await channel.send(
-            content=self._daily_message_content(
-                bundle,
-                notice=(
-                    "🧪 **Isolated test report.** Synthetic character history, live Wowhead RSS, "
-                    "no live database or schedule access, and no notifications."
-                ),
+        actual_mode = await self._send_daily_report(
+            channel,
+            bundle,
+            notice=(
+                "🧪 **Isolated test report.** Synthetic character history, live Wowhead RSS, "
+                "no live database or schedule access, and no notifications."
             ),
-            embeds=self._daily_embeds(bundle),
             allowed_mentions=discord.AllowedMentions.none(),
         )
         news_status = (
@@ -557,6 +668,7 @@ class ForeverCommands(commands.Cog):
         await interaction.followup.send(
             f"Posted the **{scenario}** isolated test to {channel.mention}. "
             f"{news_status} Commentary: **{bundle.commentary.source}**. "
+            f"Layout: **{actual_mode}**. "
             "The live schedule and database were untouched, and mentions were suppressed.",
             ephemeral=True,
             allowed_mentions=discord.AllowedMentions.none(),
@@ -639,9 +751,9 @@ class ForeverCommands(commands.Cog):
             self.bot.commentary,
             news_lookback_hours=self.bot.settings.wowhead_lookback_hours,
         )
-        await channel.send(
-            content=self._daily_message_content(bundle),
-            embeds=self._daily_embeds(bundle),
+        actual_mode = await self._send_daily_report(
+            channel,
+            bundle,
             allowed_mentions=discord.AllowedMentions.none(),
         )
         news_status = (
@@ -657,7 +769,8 @@ class ForeverCommands(commands.Cog):
         )
         await interaction.followup.send(
             "Posted the read-only live test to **#bot-stuff**. "
-            f"{news_status} Commentary: **{bundle.commentary.source}**.{partial_status} "
+            f"{news_status} Commentary: **{bundle.commentary.source}**. "
+            f"Layout: **{actual_mode}**.{partial_status} "
             "No snapshot, 24-hour baseline, commentary history, schedule or next-run value was changed, "
             "and all mentions were suppressed.",
             ephemeral=True,

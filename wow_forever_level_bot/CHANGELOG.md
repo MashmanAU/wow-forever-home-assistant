@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.8.0
+
+- Restores the missing Home Assistant render-mode, density and field-level display controls.
+- Adds improved native embed, Discord Components V2 and deterministic Pillow image renderers.
+- Defaults to a dark two-column image with real class colours and graphical level bars; no generative image model touches live facts.
+- Keeps the announcer commentary as normal Discord message text, including as a separate message when Components V2 is selected.
+- Routes scheduled delivery and `/daily-live-test` through the same selected production sender.
+- Retains the native embed as a selectable text mode and automatic fallback for image or Components V2 failure.
+- Preserves snapshot history, live Blizzard data, OpenAI commentary, Wowhead RSS, schedule advancement, `@everyone`, read-only live testing and GHCR delivery.
+- Makes no database schema change.
+
 ## 1.7.1
 
 - Standardises the daily leaderboard as one embed with exactly two Discord Markdown lines per character.

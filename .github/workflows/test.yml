@@ -1,21 +1,26 @@
 name: Test
+
 on:
-  pull_request:
   push:
-    branches: [main]
+  pull_request:
+
 permissions:
   contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wow_forever_level_bot
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e "./wow_forever_level_bot[test]"
-      - run: pytest -q
-        working-directory: wow_forever_level_bot
-      - run: python -m py_compile wow_forever_bot/*.py
-        working-directory: wow_forever_level_bot
+          cache: pip
+          cache-dependency-path: wow_forever_level_bot/pyproject.toml
+      - name: Install
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[test]'
+      - name: Test
+        run: pytest -q

@@ -70,19 +70,19 @@ def _bundle() -> DailyBundle:
     )
 
 
-def test_compact_layout_is_exactly_two_discord_markdown_lines() -> None:
-    block = leaderboard_block(_row())
+def test_configurable_layout_is_exactly_two_discord_markdown_lines() -> None:
+    block = leaderboard_block(_row(), density="detailed")
     lines = block.splitlines()
     assert len(lines) == 2
-    assert lines[0] == "**#2 Mash Man** ↑1 · Human Warrior · Lv **36/60**"
+    assert lines[0] == "**#2 Mash Man** ↑1 · Human Warrior · Lv **36/60** · `██████░░░░`"
     assert lines[1].startswith("↳ 💀 **9** · ⚒️ Blacksmithing **114/150**")
     for expected in (
         "24h Lv +2, 💀 +1, HK +3, iLvl +2.5",
-        "7d Lv +5",
         "🏆 Going Up",
         "⚒️ Blacksmithing +4",
     ):
         assert expected in lines[1]
+    assert "7d" not in lines[1]
 
 
 def test_missing_optional_data_keeps_clean_two_line_layout() -> None:
@@ -108,7 +108,9 @@ def test_missing_optional_data_keeps_clean_two_line_layout() -> None:
         rank=None,
         rank_change=None,
     )
-    assert leaderboard_block(quiet) == "**Mash Man** · Lv **36/60**\n↳ 💀 **n/a**"
+    assert leaderboard_block(quiet, density="compact") == (
+        "**Mash Man** · Lv **36/60** · `██████░░░░`\n↳ 💀 **n/a**"
+    )
 
 
 def test_every_character_stays_inside_one_embed_description() -> None:
@@ -123,7 +125,7 @@ def test_every_character_stays_inside_one_embed_description() -> None:
         rows.append(replace(original, snapshot=snapshot, rank=index))
     description = leaderboard_description(rows)
     assert len(description) <= 4096
-    assert description.count("\n") == 39
+    assert description.count("\n") == 58
     assert "Mash1 Man" in description
     assert "Mash20 Man" in description
 
