@@ -83,11 +83,29 @@ def _font_path(*names: str) -> str | None:
     return None
 
 
-def _font(size: int, *, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    names = ("DejaVuSans-Bold.ttf", "DejaVuSans.ttf") if bold else (
-        "DejaVuSans.ttf",
-        "DejaVuSans-Bold.ttf",
-    )
+def _font(
+    size: int,
+    *,
+    bold: bool = False,
+    condensed: bool = False,
+) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    if condensed:
+        names = (
+            "DejaVuSansCondensed-Bold.ttf",
+            "DejaVuSans-Bold.ttf",
+            "DejaVuSansCondensed.ttf",
+            "DejaVuSans.ttf",
+        ) if bold else (
+            "DejaVuSansCondensed.ttf",
+            "DejaVuSans.ttf",
+            "DejaVuSansCondensed-Bold.ttf",
+            "DejaVuSans-Bold.ttf",
+        )
+    else:
+        names = ("DejaVuSans-Bold.ttf", "DejaVuSans.ttf") if bold else (
+            "DejaVuSans.ttf",
+            "DejaVuSans-Bold.ttf",
+        )
     path = _font_path(*names)
     return ImageFont.truetype(path, size=size) if path else ImageFont.load_default()
 
@@ -218,7 +236,7 @@ def _draw_card(
     name_colour = class_colour if _opt(options, "use_class_colours", True) else theme["text"]
     right_text: list[str] = []
     if _opt(options, "show_level", True):
-        right_text.append(f"LEVEL {row.snapshot.level}/60")
+        right_text.append(f"LEVEL {row.snapshot.level}")
     if _opt(options, "show_lifetime_deaths", True):
         deaths = row.snapshot.deaths.lifetime
         right_text.append(f"DEATHS {deaths:,}" if deaths is not None else "DEATHS —")

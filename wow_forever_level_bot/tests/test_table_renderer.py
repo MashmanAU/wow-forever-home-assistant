@@ -48,9 +48,10 @@ def test_core_columns_follow_the_agreed_order_and_zero_is_dash() -> None:
     header = table.splitlines()[0]
     assert header.index("Character") < header.index("Level") < header.index("24h")
     assert header.index("24h") < header.index("7d") < header.index("Deaths")
-    assert "43/60   -  +5     66" in table
-    assert "43/60  +3  +5     66" in table
+    assert "43   -  +5     66" in table
+    assert "43  +3  +5     66" in table
     assert "+0" not in table
+    assert "/60" not in table
 
 
 def test_unicode_widths_and_long_optional_details_stay_mobile_conscious() -> None:

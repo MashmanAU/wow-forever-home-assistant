@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.1
+
+- Reduces the default 18-character Minimal Image from 760 × 1,220 px to 660 × 872 px for improved Discord inline scaling.
+- Replaces padded rounded character cards and a decorative header with tight 48 px edge-to-edge row bands.
+- Increases heavy condensed character-name type to 34 px, level type to 25 px and 24-hour movement to 24 px while retaining 44 px class glyphs.
+- Keeps Level → 24h immediately adjacent and lifetime deaths optional at the far right; secondary fields remain configurable on an expanded second line.
+- Removes `/60` from displayed levels in Minimal Image, Table, Native Embed, Components V2 and the detailed Image; level 60 remains internal for progress calculations.
+- Preserves Table order and `-` no-change behaviour, all five modes, Home Assistant controls, live data, OpenAI, Wowhead, schedules, production mentions, read-only live testing and GitHub/GHCR delivery.
+- Makes no database schema change.
+
 ## 1.9.0
 
 - Adds a narrow single-column `minimal_image` renderer optimised for Discord inline reading, with 50 px deterministic class glyphs, large class-coloured names, a level badge and adjacent 24-hour movement.

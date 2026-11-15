@@ -7,10 +7,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_release_versions_and_home_assistant_build_metadata() -> None:
-    assert __version__ == "1.9.0"
+    assert __version__ == "1.9.1"
     config = (ROOT / "config.yaml").read_text()
-    assert 'version: "1.9.0"' in config
-    assert 'version = "1.9.0"' in (ROOT / "pyproject.toml").read_text()
+    assert 'version: "1.9.1"' in config
+    assert 'version = "1.9.1"' in (ROOT / "pyproject.toml").read_text()
     assert "image: ghcr.io/mashmanau/{arch}-wow-forever-level-bot" in config
     assert not (ROOT / "build.yaml").exists()
 
@@ -113,6 +113,15 @@ def test_daily_leaderboard_has_five_modes_and_native_fallback() -> None:
     assert "render_minimal_leaderboard_png" in source
     assert "leaderboard_table_code_blocks" in source
     assert "native text fallback" in source
+
+
+def test_displayed_levels_omit_the_internal_level_cap() -> None:
+    presentation = (ROOT / "wow_forever_bot" / "presentation.py").read_text()
+    image = (ROOT / "wow_forever_bot" / "image_renderer.py").read_text()
+    table = (ROOT / "wow_forever_bot" / "table_renderer.py").read_text()
+    assert "snapshot.level}/60" not in presentation
+    assert "snapshot.level}/60" not in image
+    assert "snapshot.level}/60" not in table
 
 
 def test_home_assistant_exposes_display_customisation() -> None:

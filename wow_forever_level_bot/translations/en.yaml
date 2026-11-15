@@ -74,7 +74,7 @@ configuration:
     description: Display the character class as text. The minimal image can still show its class icon when this is off.
   show_level:
     name: Show level
-    description: Display the factual current level out of 60.
+    description: Display the factual current level. The level cap remains internal to progress calculations and is not appended to displayed levels.
   show_level_progress:
     name: Show level progress
     description: Display progress towards level 60 as an optional secondary field or graphical bar.

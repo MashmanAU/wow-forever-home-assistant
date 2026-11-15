@@ -47,7 +47,7 @@ def test_minimal_image_is_narrow_deterministic_and_large_type() -> None:
     assert first.startswith(b"\x89PNG\r\n\x1a\n")
     image = Image.open(BytesIO(first))
     assert image.mode == "RGB"
-    assert image.size == (760, 290)
+    assert image.size == (660, 152)
 
 
 def test_secondary_fields_expand_rows_only_when_enabled() -> None:
@@ -58,6 +58,22 @@ def test_secondary_fields_expand_rows_only_when_enabled() -> None:
         options=_options(show_race=True, show_class=True, show_7d_changes=True),
         generated_at=generated_at,
     )
-    assert Image.open(BytesIO(minimal)).height == 290
-    assert Image.open(BytesIO(expanded)).height == 350
+    assert Image.open(BytesIO(minimal)).height == 152
+    assert Image.open(BytesIO(expanded)).height == 206
     assert expanded != minimal
+
+
+def test_full_roster_uses_compact_reference_like_dimensions() -> None:
+    generated_at = datetime(2026, 11, 16, tzinfo=timezone.utc)
+    rows = _rows() * 6
+    image = Image.open(
+        BytesIO(
+            render_minimal_leaderboard_png(
+                rows,
+                options=_options(),
+                generated_at=generated_at,
+            )
+        )
+    )
+    assert image.size == (660, 872)
+    assert image.height / len(rows) < 49

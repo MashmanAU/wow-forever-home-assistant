@@ -132,94 +132,89 @@ def render_minimal_leaderboard_png(
         or _opt(options, "show_notable_activity", False)
         or _opt(options, "show_level_progress", False)
     )
-    width = 760
-    header_height = 76
-    margin = 16
-    gap = 4
-    row_height = 78 if secondary_enabled else 58
-    height = header_height + margin * 2 + len(rows) * row_height + max(0, len(rows) - 1) * gap
+    # Discord displays tall attachments at a constrained inline width. A narrow canvas,
+    # no decorative header and 48 px edge-to-edge rows keep the useful type large after
+    # Discord scales an 18-character roster into the chat timeline.
+    width = 660
+    outer_padding = 4
+    row_height = 66 if secondary_enabled else 48
+    height = outer_padding * 2 + len(rows) * row_height
 
     image = Image.new("RGB", (width, height), theme["background"])
     draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, width, header_height), fill=theme["header"])
-    draw.rectangle((0, header_height - 3, width, header_height), fill=theme["gold"])
 
-    title_font = _font(31, bold=True)
-    date_font = _font(15, bold=True)
-    draw.text((margin, 17), "WOW FOREVER", font=title_font, fill=theme["text"])
-    date_text = generated_at.strftime("%d %b %Y").upper()
-    date_width = draw.textlength(date_text, font=date_font)
-    draw.text((width - margin - date_width, 30), date_text, font=date_font, fill=theme["muted"])
-
-    name_font = _font(30, bold=True)
-    badge_font = _font(22, bold=True)
-    movement_font = _font(20, bold=True)
-    death_font = _font(17, bold=True)
-    small_font = _font(14)
-    rank_font = _font(12, bold=True)
+    name_font = _font(34, bold=True, condensed=True)
+    badge_font = _font(25, bold=True, condensed=True)
+    movement_font = _font(24, bold=True, condensed=True)
+    death_font = _font(16, bold=True, condensed=True)
+    small_font = _font(13, condensed=True)
+    rank_font = _font(11, bold=True, condensed=True)
 
     for index, row in enumerate(rows):
-        y1 = header_height + margin + index * (row_height + gap)
+        y1 = outer_padding + index * row_height
         y2 = y1 + row_height
+        # Flat bands replace the padded rounded cards from v1.9.0.
         fill = theme["card_alt"] if index % 2 else theme["card"]
-        draw.rounded_rectangle((margin, y1, width - margin, y2), radius=10, fill=fill)
-        x = margin + 4
+        draw.rectangle((0, y1, width, y2), fill=fill)
+        if index:
+            draw.line((0, y1, width, y1), fill=theme["background"], width=1)
+        x = 6
         class_name = row.snapshot.character_class
         colour = _class_colour(class_name) if _opt(options, "use_class_colours", True) else theme["text"]
 
         if _opt(options, "show_class_icons", True):
-            icon_box = (x, y1 + 4, x + 50, y1 + 54)
+            icon_box = (x, y1 + 2, x + 44, y1 + 46)
             _draw_class_glyph(draw, icon_box, class_name, colour)
             if _opt(options, "show_rank", False) and row.rank is not None:
                 rank_text = str(row.rank)
-                rank_box = (x + 31, y1 + 35, x + 50, y1 + 54)
+                rank_box = (x + 27, y1 + 29, x + 44, y1 + 46)
                 draw.ellipse(rank_box, fill=theme["gold"])
                 bbox = draw.textbbox((0, 0), rank_text, font=rank_font)
                 draw.text(
-                    (rank_box[0] + 9.5 - (bbox[2] - bbox[0]) / 2, rank_box[1] + 8.5 - (bbox[3] - bbox[1]) / 2),
+                    (rank_box[0] + 8.5 - (bbox[2] - bbox[0]) / 2, rank_box[1] + 7.5 - (bbox[3] - bbox[1]) / 2),
                     rank_text,
                     font=rank_font,
                     fill="#17130b",
                 )
-            x += 57
+            x += 50
         elif _opt(options, "show_rank", False) and row.rank is not None:
             rank_text = f"{row.rank}."
-            draw.text((x, y1 + 18), rank_text, font=small_font, fill=theme["muted"])
+            draw.text((x, y1 + 14), rank_text, font=small_font, fill=theme["muted"])
             x += int(draw.textlength(rank_text, font=small_font)) + 8
 
         if _opt(options, "show_level", True):
-            badge_width = 50
-            draw.rounded_rectangle((x, y1 + 8, x + badge_width, y1 + 50), radius=9, fill=theme["border"])
+            badge_width = 47
+            draw.rounded_rectangle((x, y1 + 4, x + badge_width, y1 + 44), radius=7, fill=theme["border"])
             level_text = str(row.snapshot.level)
             bbox = draw.textbbox((0, 0), level_text, font=badge_font)
             draw.text(
-                (x + badge_width / 2 - (bbox[2] - bbox[0]) / 2, y1 + 28 - (bbox[3] - bbox[1]) / 2),
+                (x + badge_width / 2 - (bbox[2] - bbox[0]) / 2, y1 + 24 - (bbox[3] - bbox[1]) / 2),
                 level_text,
                 font=badge_font,
                 fill=theme["text"],
             )
-            x += badge_width + 7
+            x += badge_width + 4
 
         if _opt(options, "show_24h_changes", True):
             move_text = _movement(row.levels_24h)
             move_colour = "#65d48a" if (row.levels_24h or 0) > 0 else theme["muted"]
-            move_width = max(24, int(draw.textlength(move_text, font=movement_font)))
-            draw.text((x, y1 + 17), move_text, font=movement_font, fill=move_colour)
-            x += move_width + 12
+            move_width = max(25, int(draw.textlength(move_text, font=movement_font)))
+            draw.text((x, y1 + 9), move_text, font=movement_font, fill=move_colour)
+            x += move_width + 7
 
         death_text = ""
         if _opt(options, "show_lifetime_deaths", True):
             deaths = row.snapshot.deaths.lifetime
             death_text = f"☠ {deaths:,}" if deaths is not None else "☠ -"
         death_width = int(draw.textlength(death_text, font=death_font)) if death_text else 0
-        right_edge = width - margin - 14
+        right_edge = width - 8
         if death_text:
-            draw.text((right_edge - death_width, y1 + 20), death_text, font=death_font, fill=theme["muted"])
+            draw.text((right_edge - death_width, y1 + 13), death_text, font=death_font, fill=theme["muted"])
 
-        name_width = max(60, right_edge - death_width - 14 - x)
+        name_width = max(60, right_edge - death_width - 8 - x)
         name_colour = colour if _opt(options, "use_class_colours", True) else theme["text"]
         draw.text(
-            (x, y1 + 14),
+            (x, y1 + 4),
             _fit(draw, row.snapshot.display_name.upper(), name_font, name_width),
             font=name_font,
             fill=name_colour,
@@ -229,7 +224,7 @@ def render_minimal_leaderboard_png(
             secondary = _secondary_text(row, options)
             if secondary:
                 draw.text(
-                    (x, y1 + 49),
+                    (x, y1 + 43),
                     _fit(draw, secondary, small_font, right_edge - x),
                     font=small_font,
                     fill=theme["muted"],

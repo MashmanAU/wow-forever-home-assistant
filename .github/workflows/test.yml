@@ -24,3 +24,23 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e '.[test]'
       - name: Test
         run: pytest -q
+      - name: Validate PowerShell publisher
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $PWD "publish.ps1"),
+            [ref]$tokens,
+            [ref]$parseErrors
+          )
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host "publish.ps1 syntax is valid."
+      - name: Test publisher Git stderr handling
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: ./tests/publish_integration.ps1

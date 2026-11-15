@@ -170,7 +170,7 @@ def _separator(columns: list[tuple[str, int, bool]]) -> str:
 def _primary_values(row: SnapshotProgress, options: Any) -> list[str]:
     values = [_character(row, options)]
     if _opt(options, "show_level", True):
-        values.append(f"{row.snapshot.level}/60")
+        values.append(str(row.snapshot.level))
     if _opt(options, "show_24h_changes", True):
         values.append(_movement(row.levels_24h))
     if _opt(options, "show_7d_changes", False):

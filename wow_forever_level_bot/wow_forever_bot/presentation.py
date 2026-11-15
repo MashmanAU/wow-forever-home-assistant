@@ -100,7 +100,7 @@ def _identity_line(row: SnapshotProgress, options: Any, *, markdown: bool = True
     if context:
         identity_parts.append(" ".join(context))
     if _option(options, "show_level", True):
-        identity_parts.append(f"Lv {bold(f'{snapshot.level}/60')}")
+        identity_parts.append(f"Lv {bold(str(snapshot.level))}")
     if _option(options, "show_level_progress", True):
         identity_parts.append(f"`{_progress_bar(snapshot.level)}`")
     return " · ".join(identity_parts)
@@ -220,7 +220,7 @@ def leaderboard_description(
     blocks = []
     for row in rows:
         rank = f"#{row.rank} " if row.rank is not None and _option(options, "show_rank", True) else ""
-        level = f" · Lv {row.snapshot.level}/60" if _option(options, "show_level", True) else ""
+        level = f" · Lv {row.snapshot.level}" if _option(options, "show_level", True) else ""
         deaths = row.snapshot.deaths.lifetime
         death_text = (
             f" · 💀 {deaths:,}"
