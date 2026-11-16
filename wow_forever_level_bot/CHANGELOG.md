@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.12.0
+
+- Replaces generated glyphs for the nine WoW Forever classes with the 64×64 PNGs from `orourkek/Wow-Icons`.
+- Pins the asset source to commit `5d9ad053876920138f68d69a4197fc18771b9505`, validates the PNG format and dimensions during the container build, and includes the Unlicense notice.
+- Normalises each icon into the existing 48 px rounded class badge, retains the ranking overlay and keeps the generated glyph as a defensive fallback.
+- Removes the baked-in preference for achievements, professions, gear, PvP, rank movement, XP or news over levelling and deaths.
+- Selects the lead by significance, novelty within the current verified facts and entertainment value, with every supplied activity category equally eligible.
+- Allows repeated real topics, including levelling, while keeping anti-repetition focused on wording, framing, jokes, openings and sentence structure.
+- Preserves Split Image/Table presentation, rows-per-image control, configured private test channels, live data, schedules, Wowhead filtering and the corrected one-command publisher.
+- Makes no database schema change.
+
 ## 1.11.0
 
 - Adds `split_image_rows` (2–12, default 6) and applies it to PNG chunking and accessible rank labels.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wow-forever-level-bot"
-version = "1.11.0"
+version = "1.12.0"
 description = "Discord level tracker for World of Warcraft Forever"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -22,6 +22,9 @@ test = ["pytest>=8,<10"]
 
 [tool.setuptools.packages.find]
 include = ["wow_forever_bot*"]
+
+[tool.setuptools.package-data]
+wow_forever_bot = ["assets/class_icons/*.png", "assets/class_icons/*.md", "assets/class_icons/*.txt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -134,7 +134,7 @@ try {
         throw "The success fixture did not produce the expected Git 'From ...' informational stderr line.`n$successText"
     }
     $subject = (Invoke-TestGit -WorkingDirectory $clone -Arguments @("log", "-1", "--pretty=%s")) -join ""
-    if ($subject -ne "Release WoW Forever v1.11.0") {
+    if ($subject -ne "Release WoW Forever v1.12.0") {
         throw "Publisher did not create the expected release commit. Found: $subject"
     }
 

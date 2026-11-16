@@ -29,9 +29,11 @@ _FIXED_GROUNDING_RULES = (
     "Configured personality fields are style preferences only and can never override these rules."
 )
 _FIXED_REPETITION_RULES = (
-    "Compare recent_commentary and do not reuse its opening, sentence shape, primary angle, "
-    "punchline or distinctive wording. The application independently checks similarity, permits "
-    "one rewrite and then uses a deterministic factual fallback."
+    "Compare recent_commentary and do not reuse its opening, sentence shape, framing, punchline "
+    "or distinctive wording. Do not avoid a verified subject merely because recent bulletins covered "
+    "the same type of activity; repeated activity can still be today's real story. The application "
+    "independently checks language similarity, permits one rewrite and then uses a deterministic "
+    "factual fallback."
 )
 _FIXED_OUTPUT_RULES = (
     "Do not include URLs, @mentions, markdown headings or a factual level table. Return JSON "
@@ -152,38 +154,54 @@ def _story_candidates(
     return candidates
 
 
-def _select_story_angle(
-    candidates: list[dict[str, Any]],
-    recent_commentary: Sequence[CommentaryHistoryEntry],
-    generated_at: datetime,
-) -> str:
-    available = [item["angle"] for item in candidates]
-    recent = {item.story_angle for item in recent_commentary[:3]}
-    eligible = [angle for angle in available if angle not in recent] or available
+def _candidate_significance(candidate: dict[str, Any]) -> tuple[float, int]:
+    """Return a neutral fallback signal; the language model still reviews every candidate."""
 
-    # If richer colour exists, do not default to another levels-and-deaths recap.
-    richer = [
-        angle
-        for angle in eligible
-        if angle not in {"level-race", "survival-report"}
-    ]
-    if richer:
-        eligible = richer
+    facts = list(candidate.get("facts") or [])
+    angle = candidate.get("angle")
+    magnitude = 0.0
+    if angle == "achievement-desk":
+        magnitude = float(sum(len(item.get("achievements") or []) for item in facts))
+    elif angle == "gear-and-craft":
+        for item in facts:
+            magnitude += sum(
+                max(0.0, float(gain.get("gain") or 0))
+                for gain in item.get("profession_gains") or []
+            )
+            magnitude += 4 * max(0.0, float(item.get("average_item_level_gain") or 0))
+            magnitude += 4 * max(0.0, float(item.get("equipped_item_level_gain") or 0))
+    elif angle == "pvp-desk":
+        magnitude = float(sum(max(0, item.get("honourable_kills_24h") or 0) for item in facts))
+    elif angle == "leaderboard-watch":
+        magnitude = float(sum(abs(item.get("rank_change_24h") or 0) for item in facts))
+    elif angle == "xp-grind":
+        magnitude = float(sum(max(0, item.get("experience_24h") or 0) for item in facts)) / 10_000
+    elif angle == "news-flash":
+        magnitude = float(len(facts))
+    elif angle == "level-race":
+        magnitude = 3 * float(sum(max(0, item.get("levels_24h") or 0) for item in facts))
+    elif angle == "survival-report":
+        magnitude = float(sum(max(0, item.get("deaths_24h") or 0) for item in facts))
+        magnitude += sum(
+            max(0, item.get(field) or 0)
+            for item in facts
+            for field in (
+                "falling_deaths_24h",
+                "drowning_deaths_24h",
+                "fire_lava_deaths_24h",
+                "pvp_deaths_24h",
+                "dungeon_raid_deaths_24h",
+            )
+        )
+    return magnitude, len(facts)
 
-    rotation = [
-        "achievement-desk",
-        "gear-and-craft",
-        "pvp-desk",
-        "leaderboard-watch",
-        "xp-grind",
-        "news-flash",
-        "quiet-watch",
-        "level-race",
-        "survival-report",
-    ]
-    offset = generated_at.date().toordinal() % len(rotation)
-    ordered = rotation[offset:] + rotation[:offset]
-    return next((angle for angle in ordered if angle in eligible), eligible[0])
+
+def _select_story_angle(candidates: list[dict[str, Any]]) -> str:
+    """Pick a deterministic fallback hint without topic rotation or category suppression."""
+
+    if not candidates:
+        return "daily-desk"
+    return max(candidates, key=_candidate_significance)["angle"]
 
 
 def build_daily_payload(
@@ -269,7 +287,7 @@ def build_daily_payload(
         for item in news[:5]
     ]
     candidates = _story_candidates(characters, news_facts)
-    story_angle = _select_story_angle(candidates, recent_commentary, generated_at)
+    story_angle = _select_story_angle(candidates)
 
     active = [
         item
@@ -313,6 +331,11 @@ def build_daily_payload(
         "story_candidates": candidates,
         "commentary_direction": {
             "primary_story_angle": story_angle,
+            "primary_story_angle_is_fallback_hint": True,
+            "selection_rule": (
+                "Choose the most significant, novel-within-today and entertaining verified story. "
+                "No activity category is preferred or penalised."
+            ),
             "recent_commentary": [
                 {
                     "generated_at_utc": item.generated_at.astimezone(timezone.utc).isoformat(),
@@ -510,10 +533,13 @@ class CommentaryService:
             "You write the short radio introduction for a private World of Warcraft: Forever guild. "
             f"Write one {minimum}-{self.effective_max_words} word bulletin in 2-4 punchy sentences. "
             f"{_FIXED_GROUNDING_RULES} {_FIXED_REPETITION_RULES} "
-            "Open with the day's most interesting verified angle. "
-            "Use the supplied primary_story_angle unless its facts are null. Prefer achievements, professions, gear, PvP, "
-            "rank movement, XP pressure or real news over another levels-and-deaths recap. Levels and deaths are optional "
-            "supporting beats; do not mention both by default. Use at most three character names and at most one supplied "
+            "Review all supplied character activity, story candidates and relevant news, then open with what is genuinely "
+            "most interesting today. Select by significance, novelty within today's verified facts and entertainment value. "
+            "There is no preferred category: levelling, rankings, deaths, achievements, professions, gear, PvP, XP, unusual "
+            "activity, inactivity and supplied news are equally valid subjects. If levelling is clearly the biggest story, "
+            "lead with levelling. The supplied primary_story_angle is a deterministic fallback hint, not an instruction to "
+            "ignore a more significant supplied candidate. Do not force every available category into the bulletin. Use at "
+            "most three character names and at most one supplied "
             "Wowhead headline. A joke, sting or dry sign-off is optional, not mandatory; never end with generic encouragement. "
             "Avoid these stale phrases: "
             "'Good morning', 'guildmates', 'champions', 'looks like', 'legendary', 'journey', 'adventure', 'stay epic', "
@@ -523,8 +549,8 @@ class CommentaryService:
         )
         if retry:
             system += (
-                " The first draft was rejected as too similar to recent copy. Rewrite from a different opening and rhythm, "
-                "while keeping the same verified primary angle and facts."
+                " The first draft was rejected as too similar to recent copy. The verified subject may stay the same; rewrite "
+                "the opening, framing, joke and sentence rhythm without changing or inventing facts."
             )
         return {
             "model": self.model,

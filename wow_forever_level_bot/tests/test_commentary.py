@@ -1,10 +1,8 @@
 import asyncio
 import logging
-from datetime import timedelta
 from pathlib import Path
 
-from wow_forever_bot.commentary import CommentaryService, build_daily_payload
-from wow_forever_bot.models import CommentaryHistoryEntry
+from wow_forever_bot.commentary import CommentaryService, _select_story_angle, build_daily_payload
 from wow_forever_bot.test_environment import (
     FIXTURE_ANCHOR,
     fixture_news,
@@ -45,11 +43,11 @@ def test_controlled_payload_is_rich_factual_and_history_aware(tmp_path: Path) ->
     assert "summary" not in payload["wowhead_news"][0]
     assert payload["guild_summary"]["tracked_characters"] == 4
     assert payload["commentary_direction"]["recent_commentary"]
-    assert payload["commentary_direction"]["primary_story_angle"] not in {
-        "level-race",
-        "survival-report",
-        "news-flash",
+    assert payload["commentary_direction"]["primary_story_angle"] in {
+        item["angle"] for item in payload["story_candidates"]
     }
+    assert payload["commentary_direction"]["primary_story_angle_is_fallback_hint"] is True
+    assert "No activity category is preferred" in payload["commentary_direction"]["selection_rule"]
 
 
 def test_fallback_is_short_and_uses_selected_non_repetitive_angle(tmp_path: Path) -> None:
@@ -79,39 +77,23 @@ def test_quiet_day_does_not_invent_level_gains(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
-def test_story_angles_rotate_across_repeated_mixed_days(tmp_path: Path) -> None:
-    async def scenario() -> None:
-        _, progress = await prepare_fixture_store(tmp_path / "rotation.db")
-        history = fixture_recent_commentary()
-        service = CommentaryService("")
-        angles = []
-        copy = []
-        for day in range(6):
-            generated_at = FIXTURE_ANCHOR + timedelta(days=day)
-            payload = build_daily_payload(
-                progress,
-                fixture_news(),
-                generated_at=generated_at,
-                recent_commentary=history,
-            )
-            result = await service.generate(payload)
-            angles.append(result.story_angle)
-            copy.append(result.text)
-            history.insert(
-                0,
-                CommentaryHistoryEntry(
-                    generated_at,
-                    result.text,
-                    result.source,
-                    result.story_angle,
-                ),
-            )
-        assert len(set(angles)) >= 4
-        assert all(left != right for left, right in zip(angles, angles[1:]))
-        assert len(set(copy)) == len(copy)
-        await service.close()
-
-    asyncio.run(scenario())
+def test_significant_levelling_can_remain_the_lead_story() -> None:
+    candidates = [
+        {
+            "angle": "gear-and-craft",
+            "facts": [{"character": "Crafter", "profession_gains": [{"profession": "Mining", "gain": 1}]}],
+        },
+        {
+            "angle": "level-race",
+            "facts": [
+                {"character": "Elrys", "levels_24h": 3, "level": 40},
+                {"character": "Lutherr", "levels_24h": 3, "level": 40},
+                {"character": "Dead Fall", "levels_24h": 2, "level": 40},
+                {"character": "Mash Man", "levels_24h": 1, "level": 22},
+            ],
+        },
+    ]
+    assert _select_story_angle(candidates) == "level-race"
 
 
 class _FakeResponse:
@@ -199,6 +181,9 @@ def test_openai_request_uses_radio_prompt_structured_output_and_bearer_auth(
         prompt = request["json"]["input"][0]["content"]
         assert "Azeroth sports desk" in prompt
         assert "motivational newsletter" in prompt
+        assert "If levelling is clearly the biggest story" in prompt
+        assert "There is no preferred category" in prompt
+        assert "Prefer achievements, professions, gear" not in prompt
         assert service.effective_max_words == 70
         await service.close()
 

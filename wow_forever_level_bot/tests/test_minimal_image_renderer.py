@@ -7,6 +7,7 @@ from PIL import Image, ImageFont
 
 from wow_forever_bot.config import Settings
 from wow_forever_bot.rendering import _font, _font_path
+from wow_forever_bot import minimal_image_renderer
 from wow_forever_bot.minimal_image_renderer import render_minimal_leaderboard_png
 from wow_forever_bot.models import CharacterSnapshot, DeathCounters, SnapshotProgress
 
@@ -95,3 +96,27 @@ def test_alpine_dejavu_directory_is_searched(monkeypatch) -> None:
 
     monkeypatch.setattr(Path, "exists", fake_exists)
     assert _font_path("DejaVuSans-Bold.ttf") == expected
+
+
+def test_vendored_class_icon_replaces_the_legacy_glyph(tmp_path: Path, monkeypatch) -> None:
+    icon_dir = tmp_path / "class_icons"
+    icon_dir.mkdir()
+    Image.new("RGBA", (64, 64), (220, 30, 30, 255)).save(icon_dir / "warrior.png")
+    monkeypatch.setattr(minimal_image_renderer, "_CLASS_ICON_DIR", icon_dir)
+    minimal_image_renderer._class_icon_source.cache_clear()
+    try:
+        rendered = render_minimal_leaderboard_png(
+            _rows()[:1],
+            options=_options(),
+            generated_at=datetime(2026, 11, 16, tzinfo=timezone.utc),
+        )
+        image = Image.open(BytesIO(rendered)).convert("RGB")
+        pixels = image.crop((6, 7, 54, 55)).tobytes()
+        red_pixels = sum(
+            1
+            for index in range(0, len(pixels), 3)
+            if pixels[index] > 180 and pixels[index + 1] < 70 and pixels[index + 2] < 70
+        )
+        assert red_pixels > 1_500
+    finally:
+        minimal_image_renderer._class_icon_source.cache_clear()

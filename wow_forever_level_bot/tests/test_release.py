@@ -7,10 +7,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_release_versions_and_home_assistant_build_metadata() -> None:
-    assert __version__ == "1.11.0"
+    assert __version__ == "1.12.0"
     config = (ROOT / "config.yaml").read_text()
-    assert 'version: "1.11.0"' in config
-    assert 'version = "1.11.0"' in (ROOT / "pyproject.toml").read_text()
+    assert 'version: "1.12.0"' in config
+    assert 'version = "1.12.0"' in (ROOT / "pyproject.toml").read_text()
     assert "image: ghcr.io/mashmanau/{arch}-wow-forever-level-bot" in config
     assert not (ROOT / "build.yaml").exists()
 
@@ -82,6 +82,20 @@ def test_personality_is_configurable_but_guardrails_remain_code_owned() -> None:
     assert '"type": "json_schema"' in commentary
     assert "for attempt in range(2)" in commentary
     assert "_fallback(payload)" in commentary
+    assert "There is no preferred category" in commentary
+    assert "If levelling is clearly the biggest story" in commentary
+    assert "Prefer achievements, professions, gear" not in commentary
+
+
+def test_class_icons_are_pinned_vendored_and_runtime_local() -> None:
+    dockerfile = (ROOT / "Dockerfile").read_text()
+    renderer = (ROOT / "wow_forever_bot" / "minimal_image_renderer.py").read_text()
+    vendor = (ROOT / "wow_forever_bot" / "vendor_class_icons.py").read_text()
+    assert "vendor_class_icons.py" in dockerfile
+    assert "raw.githubusercontent.com/orourkek/Wow-Icons" in vendor
+    assert "5d9ad053876920138f68d69a4197fc18771b9505" in vendor
+    assert "_CLASS_ICON_DIR" in renderer
+    assert "urlopen" not in renderer
 
 
 def test_release_contains_short_radio_and_history_defaults() -> None:

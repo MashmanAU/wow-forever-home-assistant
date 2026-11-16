@@ -2,20 +2,18 @@
 
 A Discord bot that verifies and tracks World of Warcraft: Forever characters through Blizzard's profile API. It supports separate tracking lists and schedules for each Discord server and stores data persistently in SQLite under `/data/wow_forever.db`.
 
-## Version 1.11.0 configuration simplification
+## Version 1.12.0 class icons and announcer reset
 
-Version 1.11.0 retains the successful split-image style and Table mode while removing obsolete presentation choices:
+Version 1.12.0 keeps the proven v1.11.0 presentation and configuration while improving the two agreed areas:
 
-- `split_image` is the default and renders the fixed dark 540 px leaderboard into short PNGs inside a vertical Components V2 stack;
-- `split_image_rows` controls rows per PNG from 2 to 12 and defaults to `6`;
-- `table` remains the alternative selectable monospaced layout;
-- Native Embed remains an internal automatic fallback only, not a selectable Home Assistant mode;
-- removed modes are `minimal_image`, detailed `image`, native `components_v2` and selectable `native_embed`;
-- removed settings are `leaderboard_density`, `image_columns` and `image_theme`;
-- field toggles that still affect Split Image or Table output remain available;
-- both `/daily-post-test` and `/daily-live-test` resolve `test_channel_name` directly, suppress all mentions and remain independent of the stored production schedule destination;
-- `/daily-live-test` keeps newly fetched Blizzard snapshots in memory and does not write snapshots, baselines, commentary history, schedules or next-run values;
-- OpenAI commentary, Wowhead RSS filtering, character history and GitHub/GHCR publishing are unchanged; and
+- the Split Image renderer uses the complete 64×64 PNG Classic class-icon set from `orourkek/Wow-Icons` for Druid, Hunter, Mage, Paladin, Priest, Rogue, Shaman, Warlock and Warrior;
+- the icon source is pinned to commit `5d9ad053876920138f68d69a4197fc18771b9505`, validated during the container build and distributed under the included Unlicense notice;
+- the running bot never downloads artwork: GitHub Actions vendors the assets into the container and the renderer falls back to its deterministic glyph if a local icon is missing or invalid;
+- story selection now asks what is genuinely most significant, novel within today's verified facts and entertaining, without preferring or penalising any category;
+- significant levelling can lead on consecutive days when it remains the real story;
+- anti-repetition applies to language, framing, jokes and sentence structure rather than suppressing a repeated factual topic;
+- `announcer_style`, `announcer_custom_notes`, news emphasis and character banter remain editable style controls, while grounding and output limits remain code-owned;
+- Split Image and Table remain the only selectable modes, `split_image_rows` remains 2–12 with a default of `6`, and the configured private test-channel behaviour is unchanged; and
 - no database schema migration is required.
 
 The image renderer is deterministic Python/Pillow code. No generative image model touches names, levels, professions or other live statistics. Missing optional data is omitted cleanly, and a missing scalable font or failed Components V2 delivery activates the native text fallback.
@@ -100,8 +98,8 @@ Home Assistant exposes these options:
 - `commentary_enabled` (default `true`)
 - `commentary_max_words` (40–160; default `70`; the 75-word runtime ceiling remains in force so older saved values remain valid)
 - `commentary_roast_level` (`gentle`, `mild` or `spicy`)
-- `announcer_style` (editable overall voice; default retains the v1.5.0 Azeroth sports-desk style)
-- `announcer_custom_notes` (optional tone refinements, such as deadpan delivery or avoiding catchphrases)
+- `announcer_style` (editable overall voice; default retains the Azeroth sports-desk style)
+- `announcer_custom_notes` (optional tone refinements; the default explicitly recognises significant levelling as valid news)
 - `commentary_news_emphasis` (`low`, `normal` or `high`)
 - `commentary_character_banter` (`low`, `normal` or `high`)
 - `wowhead_feed_url` (must be HTTPS on `wowhead.com`)
@@ -116,7 +114,7 @@ Home Assistant exposes these options:
 
 ## Database upgrade
 
-Version 1.11.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
+Version 1.12.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
 
 ## Forever API notes
 

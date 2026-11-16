@@ -1,14 +1,30 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from io import BytesIO
 from math import cos, pi, sin
+from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .rendering import DARK_THEME, _fit, _font, _opt, _profession_text
 from .models import SnapshotProgress
 from .presentation import CLASS_COLOURS
+
+
+_CLASS_ICON_DIR = Path(__file__).with_name("assets") / "class_icons"
+_CLASS_ICON_FILES = {
+    "druid": "druid.png",
+    "hunter": "hunter.png",
+    "mage": "mage.png",
+    "paladin": "paladin.png",
+    "priest": "priest.png",
+    "rogue": "rogue.png",
+    "shaman": "shaman.png",
+    "warlock": "warlock.png",
+    "warrior": "warrior.png",
+}
 
 
 def _class_colour(name: str | None) -> str:
@@ -17,6 +33,23 @@ def _class_colour(name: str | None) -> str:
 
 def _line(draw: ImageDraw.ImageDraw, points: list[tuple[float, float]], *, fill: str, width: int = 4) -> None:
     draw.line(points, fill=fill, width=width, joint="curve")
+
+
+@lru_cache(maxsize=len(_CLASS_ICON_FILES))
+def _class_icon_source(class_name: str | None) -> Image.Image | None:
+    """Load one vendored 64 px class icon without making rendering network-dependent."""
+
+    filename = _CLASS_ICON_FILES.get((class_name or "").casefold())
+    if not filename:
+        return None
+    path = _CLASS_ICON_DIR / filename
+    if not path.is_file():
+        return None
+    try:
+        with Image.open(path) as opened:
+            return opened.convert("RGBA").copy()
+    except (OSError, ValueError):
+        return None
 
 
 def _draw_class_glyph(
@@ -88,6 +121,31 @@ def _draw_class_glyph(
         font = _font(20, bold=True)
         bbox = draw.textbbox((0, 0), initials, font=font)
         draw.text((cx - (bbox[2] - bbox[0]) / 2, cy - (bbox[3] - bbox[1]) / 2 - 2), initials, font=font, fill=ink)
+
+
+def _draw_class_icon(
+    image: Image.Image,
+    draw: ImageDraw.ImageDraw,
+    box: tuple[int, int, int, int],
+    class_name: str | None,
+    colour: str,
+) -> None:
+    """Draw the vendored WoW icon, retaining the legacy glyph as a safe fallback."""
+
+    source = _class_icon_source(class_name)
+    if source is None:
+        _draw_class_glyph(draw, box, class_name, colour)
+        return
+
+    x1, y1, x2, y2 = box
+    size = (x2 - x1, y2 - y1)
+    icon = ImageOps.fit(source, size, method=Image.Resampling.LANCZOS)
+    tile = Image.new("RGBA", size, "#111318")
+    tile.alpha_composite(icon)
+    mask = Image.new("L", size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size[0] - 1, size[1] - 1), radius=10, fill=255)
+    image.paste(tile.convert("RGB"), (x1, y1), mask)
+    draw.rounded_rectangle(box, radius=10, outline=colour, width=2)
 
 
 def _movement(value: int | None) -> str:
@@ -164,7 +222,7 @@ def render_minimal_leaderboard_png(
 
         if _opt(options, "show_class_icons", True):
             icon_box = (x, y1 + 3, x + 48, y1 + 51)
-            _draw_class_glyph(draw, icon_box, class_name, colour)
+            _draw_class_icon(image, draw, icon_box, class_name, colour)
             if _opt(options, "show_rank", False) and row.rank is not None:
                 rank_text = str(row.rank)
                 rank_box = (x + 30, y1 + 33, x + 48, y1 + 51)
