@@ -41,7 +41,6 @@ CLASS_COLOURS = {
 }
 
 _DEFAULT_OPTIONS = SimpleNamespace(
-    leaderboard_density="standard",
     show_rank=True,
     show_race=True,
     show_class=True,
@@ -165,18 +164,11 @@ def _activity_facts(row: SnapshotProgress) -> list[str]:
 def leaderboard_block(
     row: SnapshotProgress,
     *,
-    density: str | None = None,
     options: Any | None = None,
 ) -> str:
-    """Render one configurable, deterministic Discord Markdown character block."""
+    """Render one fixed-density native fallback character block."""
 
     options = options or _DEFAULT_OPTIONS
-    requested = density or _option(options, "leaderboard_density", "standard")
-    density_name = {
-        "full": "detailed",
-        "condensed": "standard",
-        "minimal": "compact",
-    }.get(requested, requested)
     first_line = _identity_line(row, options)
     second_line: list[str] = []
 
@@ -184,11 +176,8 @@ def leaderboard_block(
         lifetime = row.snapshot.deaths.lifetime
         second_line.append(f"💀 **{lifetime:,}**" if lifetime is not None else "💀 **n/a**")
     if _option(options, "show_professions", True):
-        limit = {"compact": 1, "standard": 2, "detailed": 3}.get(density_name, 2)
-        second_line.extend(_profession_facts(row, options, limit=limit))
-    second_line.extend(_delta_facts(row, options, detailed=density_name == "detailed"))
-    if density_name == "detailed" and _option(options, "show_notable_activity", True):
-        second_line.extend(_activity_facts(row))
+        second_line.extend(_profession_facts(row, options, limit=2))
+    second_line.extend(_delta_facts(row, options, detailed=False))
 
     if not second_line:
         return first_line
@@ -207,14 +196,9 @@ def leaderboard_description(
     if not rows:
         return "No snapshot progress is available."
     options = options or _DEFAULT_OPTIONS
-    selected = _option(options, "leaderboard_density", "standard")
-    densities = [selected] + [item for item in ("standard", "compact") if item != selected]
-    for density in densities:
-        description = "\n\n".join(
-            leaderboard_block(row, density=density, options=options) for row in rows
-        )
-        if len(description) <= limit:
-            return description
+    description = "\n\n".join(leaderboard_block(row, options=options) for row in rows)
+    if len(description) <= limit:
+        return description
 
     # Last-resort native fallback retains every character and the two core facts.
     blocks = []
@@ -232,19 +216,6 @@ def leaderboard_description(
     if len(description) > limit:
         raise ValueError("The tracked roster is too large for one Discord leaderboard embed")
     return description
-
-
-def components_text_blocks(
-    progress: tuple[SnapshotProgress, ...] | list[SnapshotProgress],
-    *,
-    options: Any | None = None,
-    rows_per_block: int = 3,
-) -> list[str]:
-    """Pack rows into a small Components V2 tree well below Discord's 40-item limit."""
-
-    rows = list(progress)
-    rendered = [leaderboard_block(row, options=options) for row in rows]
-    return ["\n\n".join(rendered[i : i + rows_per_block]) for i in range(0, len(rendered), rows_per_block)]
 
 
 def daily_message_content(

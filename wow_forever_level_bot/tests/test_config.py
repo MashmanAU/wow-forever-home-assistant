@@ -3,6 +3,12 @@ import pytest
 from wow_forever_bot.config import Settings
 
 
+def _credentials(monkeypatch) -> None:
+    monkeypatch.setenv("DISCORD_TOKEN", "discord")
+    monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")
+    monkeypatch.setenv("BLIZZARD_CLIENT_SECRET", "secret")
+
+
 def test_settings_require_credentials(monkeypatch) -> None:
     for name in ("DISCORD_TOKEN", "BLIZZARD_CLIENT_ID", "BLIZZARD_CLIENT_SECRET"):
         monkeypatch.delenv(name, raising=False)
@@ -11,15 +17,12 @@ def test_settings_require_credentials(monkeypatch) -> None:
 
 
 def test_settings_defaults(monkeypatch) -> None:
-    monkeypatch.setenv("DISCORD_TOKEN", "discord")
-    monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")
-    monkeypatch.setenv("BLIZZARD_CLIENT_SECRET", "secret")
+    _credentials(monkeypatch)
     settings = Settings.from_env()
     assert settings.default_timezone == "Australia/Sydney"
     assert settings.schedule_check_seconds == 60
-    assert settings.leaderboard_render_mode == "minimal_image"
-    assert settings.leaderboard_density == "standard"
-    assert settings.image_columns == "two"
+    assert settings.leaderboard_render_mode == "split_image"
+    assert settings.split_image_rows == 6
     assert settings.show_7d_changes is False
     assert settings.show_race is False
     assert settings.show_professions is False
@@ -27,9 +30,7 @@ def test_settings_defaults(monkeypatch) -> None:
 
 
 def test_ai_and_preview_defaults(monkeypatch) -> None:
-    monkeypatch.setenv("DISCORD_TOKEN", "discord")
-    monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")
-    monkeypatch.setenv("BLIZZARD_CLIENT_SECRET", "secret")
+    _credentials(monkeypatch)
     settings = Settings.from_env()
     assert settings.commentary_enabled is True
     assert settings.commentary_max_words == 70
@@ -42,9 +43,7 @@ def test_ai_and_preview_defaults(monkeypatch) -> None:
 
 
 def test_personality_settings_are_configurable(monkeypatch) -> None:
-    monkeypatch.setenv("DISCORD_TOKEN", "discord")
-    monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")
-    monkeypatch.setenv("BLIZZARD_CLIENT_SECRET", "secret")
+    _credentials(monkeypatch)
     monkeypatch.setenv("ANNOUNCER_STYLE", "Deadpan auction-house desk.")
     monkeypatch.setenv("ANNOUNCER_CUSTOM_NOTES", "No catchphrases.")
     monkeypatch.setenv("COMMENTARY_NEWS_EMPHASIS", "high")
@@ -56,30 +55,48 @@ def test_personality_settings_are_configurable(monkeypatch) -> None:
     assert settings.commentary_character_banter == "low"
 
 
-def test_display_settings_are_configurable(monkeypatch) -> None:
-    monkeypatch.setenv("DISCORD_TOKEN", "discord")
-    monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")
-    monkeypatch.setenv("BLIZZARD_CLIENT_SECRET", "secret")
-    monkeypatch.setenv("LEADERBOARD_RENDER_MODE", "components_v2")
-    monkeypatch.setenv("LEADERBOARD_DENSITY", "compact")
+def test_retained_display_settings_are_configurable(monkeypatch) -> None:
+    _credentials(monkeypatch)
+    monkeypatch.setenv("LEADERBOARD_RENDER_MODE", "table")
+    monkeypatch.setenv("SPLIT_IMAGE_ROWS", "8")
     monkeypatch.setenv("SHOW_PROFESSIONS", "false")
     monkeypatch.setenv("SHOW_7D_CHANGES", "true")
-    monkeypatch.setenv("IMAGE_THEME", "parchment")
     settings = Settings.from_env()
-    assert settings.leaderboard_render_mode == "components_v2"
-    assert settings.leaderboard_density == "compact"
+    assert settings.leaderboard_render_mode == "table"
+    assert settings.split_image_rows == 8
     assert settings.show_professions is False
     assert settings.show_7d_changes is True
-    assert settings.image_theme == "parchment"
 
 
-@pytest.mark.parametrize(
-    "mode",
-    ("minimal_image", "split_image", "table", "native_embed", "components_v2", "image"),
-)
-def test_every_render_mode_is_selectable(monkeypatch, mode: str) -> None:
-    monkeypatch.setenv("DISCORD_TOKEN", "discord")
-    monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")
-    monkeypatch.setenv("BLIZZARD_CLIENT_SECRET", "secret")
+@pytest.mark.parametrize("mode", ("split_image", "table"))
+def test_retained_render_modes_are_selectable(monkeypatch, mode: str) -> None:
+    _credentials(monkeypatch)
     monkeypatch.setenv("LEADERBOARD_RENDER_MODE", mode)
     assert Settings.from_env().leaderboard_render_mode == mode
+
+
+@pytest.mark.parametrize("mode", ("minimal_image", "native_embed", "components_v2", "image"))
+def test_removed_render_modes_are_rejected(monkeypatch, mode: str) -> None:
+    _credentials(monkeypatch)
+    monkeypatch.setenv("LEADERBOARD_RENDER_MODE", mode)
+    with pytest.raises(RuntimeError, match="split_image or table"):
+        Settings.from_env()
+
+
+@pytest.mark.parametrize("value", ("1", "13"))
+def test_split_image_rows_range_is_enforced(monkeypatch, value: str) -> None:
+    _credentials(monkeypatch)
+    monkeypatch.setenv("SPLIT_IMAGE_ROWS", value)
+    with pytest.raises(RuntimeError, match="between 2 and 12"):
+        Settings.from_env()
+
+
+def test_removed_display_environment_values_are_ignored(monkeypatch) -> None:
+    _credentials(monkeypatch)
+    monkeypatch.setenv("LEADERBOARD_DENSITY", "compact")
+    monkeypatch.setenv("IMAGE_COLUMNS", "one")
+    monkeypatch.setenv("IMAGE_THEME", "parchment")
+    settings = Settings.from_env()
+    assert not hasattr(settings, "leaderboard_density")
+    assert not hasattr(settings, "image_columns")
+    assert not hasattr(settings, "image_theme")

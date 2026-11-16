@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image, ImageFont
 
 from wow_forever_bot.config import Settings
-from wow_forever_bot.image_renderer import _font, _font_path
+from wow_forever_bot.rendering import _font, _font_path
 from wow_forever_bot.minimal_image_renderer import render_minimal_leaderboard_png
 from wow_forever_bot.models import CharacterSnapshot, DeathCounters, SnapshotProgress
 

@@ -6,7 +6,7 @@ from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .image_renderer import THEMES, _fit, _font, _opt, _profession_text
+from .rendering import DARK_THEME, _fit, _font, _opt, _profession_text
 from .models import SnapshotProgress
 from .presentation import CLASS_COLOURS
 
@@ -122,8 +122,7 @@ def render_minimal_leaderboard_png(
     """Render a narrow, large-type, single-column leaderboard for Discord inline use."""
 
     rows = list(progress)
-    theme_name = _opt(options, "image_theme", "dark_warcraft")
-    theme = THEMES.get(theme_name, THEMES["dark_warcraft"])
+    theme = DARK_THEME
     secondary_enabled = bool(
         _opt(options, "show_race", False)
         or _opt(options, "show_class", False)
@@ -253,7 +252,7 @@ def render_minimal_leaderboard_chunks(
     *,
     options: Any,
     generated_at: Any,
-    rows_per_image: int = 5,
+    rows_per_image: int = 6,
 ) -> tuple[bytes, ...]:
     """Render the Minimal Image once and split it into short, lossless row chunks.
 

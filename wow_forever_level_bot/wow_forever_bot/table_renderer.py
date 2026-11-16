@@ -4,7 +4,7 @@ from typing import Any, Iterable
 
 from wcwidth import wcwidth, wcswidth
 
-from .image_renderer import PROFESSION_SHORT, _opt
+from .rendering import PROFESSION_SHORT, _opt
 from .models import SnapshotProgress
 
 
@@ -81,9 +81,7 @@ def _professions(row: SnapshotProgress, options: Any) -> str:
         return ""
     seen: set[str] = set()
     values: list[str] = []
-    limit = {"compact": 1, "standard": 2, "detailed": 3}.get(
-        _opt(options, "leaderboard_density", "standard"), 2
-    )
+    limit = 2
     for profession in row.snapshot.professions:
         key = profession.profession_name.casefold()
         if key in seen:
@@ -125,9 +123,8 @@ def _character(row: SnapshotProgress, options: Any) -> str:
 
 
 def _column_spec(rows: list[SnapshotProgress], options: Any) -> tuple[list[tuple[str, int, bool]], int]:
-    density = _opt(options, "leaderboard_density", "standard")
-    target = {"compact": 44, "standard": 58, "detailed": 72}.get(density, 58)
-    character_cap = {"compact": 17, "standard": 23, "detailed": 28}.get(density, 23)
+    target = 58
+    character_cap = 23
     character_width = max(12, min(character_cap, max([9] + [_width(_character(row, options)) for row in rows])))
 
     columns: list[tuple[str, int, bool]] = [("Character", character_width, False)]

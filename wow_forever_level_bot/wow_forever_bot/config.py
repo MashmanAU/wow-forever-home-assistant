@@ -48,8 +48,8 @@ class Settings:
         "forever hardcore",
     )
     test_channel_name: str = "bot-stuff"
-    leaderboard_render_mode: str = "minimal_image"
-    leaderboard_density: str = "standard"
+    leaderboard_render_mode: str = "split_image"
+    split_image_rows: int = 6
     show_rank: bool = False
     show_race: bool = False
     show_class: bool = False
@@ -60,8 +60,6 @@ class Settings:
     show_24h_changes: bool = True
     show_7d_changes: bool = False
     show_notable_activity: bool = False
-    image_columns: str = "two"
-    image_theme: str = "dark_warcraft"
     use_class_colours: bool = True
     show_class_icons: bool = True
     show_profession_icons: bool = True
@@ -96,32 +94,12 @@ class Settings:
         character_banter = os.getenv("COMMENTARY_CHARACTER_BANTER", "normal").strip().lower()
         if character_banter not in {"low", "normal", "high"}:
             raise RuntimeError("COMMENTARY_CHARACTER_BANTER must be low, normal or high")
-        render_mode = os.getenv("LEADERBOARD_RENDER_MODE", "minimal_image").strip().lower()
-        if render_mode not in {
-            "native_embed",
-            "components_v2",
-            "image",
-            "minimal_image",
-            "split_image",
-            "table",
-        }:
-            raise RuntimeError(
-                "LEADERBOARD_RENDER_MODE must be native_embed, components_v2, image, "
-                "minimal_image, split_image or table"
-            )
-        density = os.getenv("LEADERBOARD_DENSITY", "standard").strip().lower()
-        if density not in {"compact", "standard", "detailed"}:
-            raise RuntimeError(
-                "LEADERBOARD_DENSITY must be compact, standard or detailed"
-            )
-        image_columns = os.getenv("IMAGE_COLUMNS", "two").strip().lower()
-        if image_columns not in {"one", "two"}:
-            raise RuntimeError("IMAGE_COLUMNS must be one or two")
-        image_theme = os.getenv("IMAGE_THEME", "dark_warcraft").strip().lower()
-        if image_theme not in {"dark_warcraft", "parchment", "minimal"}:
-            raise RuntimeError(
-                "IMAGE_THEME must be dark_warcraft, parchment or minimal"
-            )
+        render_mode = os.getenv("LEADERBOARD_RENDER_MODE", "split_image").strip().lower()
+        if render_mode not in {"split_image", "table"}:
+            raise RuntimeError("LEADERBOARD_RENDER_MODE must be split_image or table")
+        split_image_rows = int(os.getenv("SPLIT_IMAGE_ROWS", "6"))
+        if not 2 <= split_image_rows <= 12:
+            raise RuntimeError("SPLIT_IMAGE_ROWS must be between 2 and 12")
         keywords = tuple(
             item.strip()
             for item in os.getenv(
@@ -162,7 +140,7 @@ class Settings:
             test_channel_name=os.getenv("TEST_CHANNEL_NAME", "bot-stuff").strip()
             or "bot-stuff",
             leaderboard_render_mode=render_mode,
-            leaderboard_density=density,
+            split_image_rows=split_image_rows,
             show_rank=_boolean_env("SHOW_RANK", False),
             show_race=_boolean_env("SHOW_RACE", False),
             show_class=_boolean_env("SHOW_CLASS", False),
@@ -173,8 +151,6 @@ class Settings:
             show_24h_changes=_boolean_env("SHOW_24H_CHANGES", True),
             show_7d_changes=_boolean_env("SHOW_7D_CHANGES", False),
             show_notable_activity=_boolean_env("SHOW_NOTABLE_ACTIVITY", False),
-            image_columns=image_columns,
-            image_theme=image_theme,
             use_class_colours=_boolean_env("USE_CLASS_COLOURS", True),
             show_class_icons=_boolean_env("SHOW_CLASS_ICONS", True),
             show_profession_icons=_boolean_env("SHOW_PROFESSION_ICONS", True),

@@ -12,7 +12,7 @@ from discord.ext import commands, tasks
 
 from .blizzard import BlizzardAPIError, BlizzardClient, CharacterNotFound
 from .commentary import CommentaryService
-from .components import build_components_v2_view, build_split_image_components_v2_view
+from .components import build_split_image_components_v2_view
 from .config import Settings
 from .daily import (
     DailyBundle,
@@ -28,11 +28,7 @@ from .models import (
     RefreshResult,
     TrackedCharacter,
 )
-from .image_renderer import render_leaderboard_png
-from .minimal_image_renderer import (
-    render_minimal_leaderboard_chunks,
-    render_minimal_leaderboard_png,
-)
+from .minimal_image_renderer import render_minimal_leaderboard_chunks
 from .news import WowheadNewsClient
 from .presentation import daily_message_content, leaderboard_description
 from .table_renderer import leaderboard_table_code_blocks
@@ -45,7 +41,6 @@ from .scheduling import (
 from .store import Store
 
 LOGGER = logging.getLogger("wow_forever_bot")
-LIVE_TEST_CHANNEL_NAME = "bot-stuff"
 Region = Literal["us", "eu", "kr", "tw"]
 PreviewScenario = Literal[
     "radio-day",
@@ -290,6 +285,28 @@ class ForeverCommands(commands.Cog):
             embeds.append(news)
         return embeds
 
+    def _private_test_channel(
+        self,
+        guild: discord.Guild,
+    ) -> tuple[discord.TextChannel | None, str | None]:
+        """Resolve the configured private test channel without touching schedules."""
+
+        channel_name = self.bot.settings.test_channel_name
+        matches = [
+            channel for channel in guild.text_channels if channel.name == channel_name
+        ]
+        if len(matches) == 1:
+            return matches[0], None
+        if not matches:
+            return None, (
+                f"No text channel named **#{channel_name}** exists. "
+                "Create it or update **Private test channel** in Home Assistant."
+            )
+        return None, (
+            f"More than one text channel is named **#{channel_name}**. "
+            "Rename duplicates before running a test."
+        )
+
     async def _send_daily_report(
         self,
         channel: discord.abc.Messageable,
@@ -301,9 +318,8 @@ class ForeverCommands(commands.Cog):
     ) -> str:
         """Send the configured production layout and return the mode actually used.
 
-        Scheduled delivery and /daily-live-test both call this method, which prevents
-        preview drift. Native Components V2 keeps commentary in a separate normal
-        message; split-image Components V2 places it in a Text Display component.
+        Scheduled delivery and both test commands call this method, which prevents
+        preview drift. Split-image Components V2 places commentary in a Text Display.
         """
 
         mentions = allowed_mentions or discord.AllowedMentions.none()
@@ -321,7 +337,7 @@ class ForeverCommands(commands.Cog):
                     bundle.progress,
                     options=self.bot.settings,
                     generated_at=bundle.generated_at,
-                    rows_per_image=5,
+                    rows_per_image=self.bot.settings.split_image_rows,
                 )
                 filenames = [
                     f"wow-forever-leaderboard-{index:02d}.png"
@@ -335,6 +351,7 @@ class ForeverCommands(commands.Cog):
                     filenames,
                     commentary=content,
                     total_rows=len(bundle.progress),
+                    rows_per_image=self.bot.settings.split_image_rows,
                 )
                 await channel.send(
                     view=view,
@@ -350,43 +367,6 @@ class ForeverCommands(commands.Cog):
             except Exception:
                 LOGGER.exception(
                     "Split-image Components V2 delivery failed; using the native text fallback"
-                )
-                await channel.send(
-                    content=content,
-                    embeds=self._daily_embeds(bundle),
-                    allowed_mentions=mentions,
-                )
-                return "native_embed_fallback"
-
-        if mode in {"image", "minimal_image"}:
-            try:
-                renderer = (
-                    render_minimal_leaderboard_png
-                    if mode == "minimal_image"
-                    else render_leaderboard_png
-                )
-                png = renderer(
-                    bundle.progress,
-                    options=self.bot.settings,
-                    generated_at=bundle.generated_at,
-                )
-                await channel.send(
-                    content=content,
-                    file=discord.File(
-                        io.BytesIO(png),
-                        filename=(
-                            "wow-forever-minimal-leaderboard.png"
-                            if mode == "minimal_image"
-                            else "wow-forever-leaderboard.png"
-                        ),
-                    ),
-                    embeds=[news] if news is not None else [],
-                    allowed_mentions=mentions,
-                )
-                return mode
-            except Exception:
-                LOGGER.exception(
-                    "Image leaderboard rendering failed; using the native text fallback"
                 )
                 await channel.send(
                     content=content,
@@ -413,31 +393,6 @@ class ForeverCommands(commands.Cog):
                     allowed_mentions=mentions,
                 )
                 return "native_embed_fallback"
-
-        if mode == "components_v2":
-            # Commentary intentionally remains a normal Discord message.
-            await channel.send(content=content, allowed_mentions=mentions)
-            try:
-                view = build_components_v2_view(
-                    bundle.progress,
-                    options=self.bot.settings,
-                )
-                await channel.send(view=view, allowed_mentions=discord.AllowedMentions.none())
-            except Exception:
-                LOGGER.exception(
-                    "Components V2 leaderboard failed; using the native text fallback"
-                )
-                await channel.send(
-                    embed=self._leaderboard_embed(bundle),
-                    allowed_mentions=discord.AllowedMentions.none(),
-                )
-                mode = "native_embed_fallback"
-            if news is not None:
-                await channel.send(
-                    embed=news,
-                    allowed_mentions=discord.AllowedMentions.none(),
-                )
-            return mode
 
         await channel.send(
             content=content,
@@ -708,25 +663,30 @@ class ForeverCommands(commands.Cog):
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
     @app_commands.describe(
-        channel="Must match the configured private test channel",
         scenario="Synthetic character scenario; live database and schedule remain untouched",
     )
     async def daily_post_test(
         self,
         interaction: discord.Interaction,
-        channel: discord.TextChannel,
         scenario: PreviewScenario = "radio-day",
     ) -> None:
         assert interaction.guild_id is not None
-        if channel.guild.id != interaction.guild_id or channel.name != self.bot.settings.test_channel_name:
+        guild = interaction.guild
+        if guild is None:
             await interaction.response.send_message(
-                f"Test posts are locked to **#{self.bot.settings.test_channel_name}**. "
-                "This command never posts to the live scheduled-report channel.",
-                ephemeral=True,
+                "This command can only run inside a server.", ephemeral=True
             )
             return
-        if interaction.guild and interaction.guild.me:
-            permissions = channel.permissions_for(interaction.guild.me)
+        channel, channel_error = self._private_test_channel(guild)
+        if channel is None:
+            await interaction.response.send_message(
+                channel_error or "The private test channel could not be resolved.",
+                ephemeral=True,
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+            return
+        if guild.me:
+            permissions = channel.permissions_for(guild.me)
             missing = []
             if not permissions.view_channel:
                 missing.append("View Channel")
@@ -774,7 +734,7 @@ class ForeverCommands(commands.Cog):
 
     @app_commands.command(
         name="daily-live-test",
-        description="Post a read-only dress rehearsal with current live data to bot-stuff.",
+        description="Post a read-only live-data rehearsal to the configured private test channel.",
     )
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
@@ -788,20 +748,14 @@ class ForeverCommands(commands.Cog):
             )
             return
 
-        matches = [
-            channel
-            for channel in guild.text_channels
-            if channel.name == LIVE_TEST_CHANNEL_NAME
-        ]
-        if len(matches) != 1:
+        channel, channel_error = self._private_test_channel(guild)
+        if channel is None:
             await interaction.response.send_message(
-                "The live test is locked to exactly one text channel named **#bot-stuff**. "
-                "Create it or remove any duplicate before running the test.",
+                channel_error or "The private test channel could not be resolved.",
                 ephemeral=True,
                 allowed_mentions=discord.AllowedMentions.none(),
             )
             return
-        channel = matches[0]
         if guild.me:
             permissions = channel.permissions_for(guild.me)
             missing = []
@@ -866,7 +820,7 @@ class ForeverCommands(commands.Cog):
             else ""
         )
         await interaction.followup.send(
-            "Posted the read-only live test to **#bot-stuff**. "
+            f"Posted the read-only live test to **#{self.bot.settings.test_channel_name}**. "
             f"{news_status} Commentary: **{bundle.commentary.source}**. "
             f"Layout: **{actual_mode}**.{partial_status} "
             "No snapshot, 24-hour baseline, commentary history, schedule or next-run value was changed, "

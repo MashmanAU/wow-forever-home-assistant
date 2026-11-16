@@ -2,38 +2,23 @@
 
 A Discord bot that verifies and tracks World of Warcraft: Forever characters through Blizzard's profile API. It supports separate tracking lists and schedules for each Discord server and stores data persistently in SQLite under `/data/wow_forever.db`.
 
-## Version 1.10.0 split-image Components V2 delivery
+## Version 1.11.0 configuration simplification
 
-Version 1.10.0 keeps the corrected production typography and adds a sixth delivery mode:
+Version 1.11.0 retains the successful split-image style and Table mode while removing obsolete presentation choices:
 
-- OpenAI writes only a 35–75 word Azeroth radio bulletin; application code remains the source of every statistic;
-- the controlled JSON now includes XP, item level, professions, achievements, PvP, ranks, baselines, guild totals and precomputed story angles;
-- the last five posted intros are supplied only as style memory, with a local similarity check and one rewrite before deterministic fallback;
-- richer angles are preferred over repeating levels and deaths;
-- Wowhead ingestion is limited to RSS headline metadata from HTTPS `wowhead.com`, a bounded lookback and explicit WoW Forever keywords;
-- the AI announcer is normal Discord message text rather than an embed;
-- the Home Assistant page now exposes render mode, density and individual field toggles;
-- `native_embed` provides an improved searchable text leaderboard and is the automatic fallback;
-- `components_v2` uses Discord-native containers, text displays and separators;
-- `image` retains the detailed one/two-column deterministic Pillow dashboard;
-- `minimal_image` (the default for new installations) creates a 540 px single-column PNG with flat 54 px rows, 48 px class glyphs, 46 px level badges, immediately adjacent 18 px bold 24-hour movement, 27 px bold class-coloured names and optional deaths;
-- `split_image` renders the same Minimal Image once, divides it into five-row PNGs and exposes each attachment through its own Components V2 Media Gallery so Discord stacks the images vertically;
-- Alpine's installed DejaVu fonts are resolved from their real production path, and a missing scalable font activates the existing native fallback instead of silently producing tiny bitmap text;
-- `table` creates a Python-native monospaced Discord table with Unicode-width alignment and mobile-conscious line lengths;
-- every mode displays the level only rather than appending `/60`; level 60 is retained internally for progress calculations;
-- no AI image generation is used for names, levels, professions or any other live statistic;
-- the simplified default keeps race/class text, professions, seven-day changes, level progress and notable activity off the primary row while leaving every field configurable;
-- unavailable optional data is omitted cleanly, and no unsupported per-character text-colour workaround is used;
-- public technical/debug footers are removed and the Wowhead section is absent when no qualifying Forever headline exists;
-- `/daily-preview` uses one of five deterministic synthetic histories in a disposable SQLite database and responds only to the caller;
-- `/daily-post-test` combines synthetic character history with live filtered Wowhead RSS and the configured OpenAI service, is locked to the configured private test-channel name and disables every mention; and
-- `/daily-live-test` fetches every real tracked character from Blizzard, derives real changes, uses live Wowhead and OpenAI, and calls the exact same selected production delivery path only in `#bot-stuff`, with all mentions disabled;
-- the live test keeps current snapshots in memory: it does not update cached character rows, save snapshots, move baselines, save commentary, alter the schedule or change the next execution;
-- announcer style, custom style notes, news emphasis and character banter are editable in Home Assistant, alongside the existing roast and word-limit controls; and
-- factual grounding, structured JSON output, prompt-injection resistance, similarity checking, one-rewrite behaviour and deterministic fallback remain fixed in code;
-- RSS or OpenAI failure falls back to the factual report instead of cancelling the scheduled post.
+- `split_image` is the default and renders the fixed dark 540 px leaderboard into short PNGs inside a vertical Components V2 stack;
+- `split_image_rows` controls rows per PNG from 2 to 12 and defaults to `6`;
+- `table` remains the alternative selectable monospaced layout;
+- Native Embed remains an internal automatic fallback only, not a selectable Home Assistant mode;
+- removed modes are `minimal_image`, detailed `image`, native `components_v2` and selectable `native_embed`;
+- removed settings are `leaderboard_density`, `image_columns` and `image_theme`;
+- field toggles that still affect Split Image or Table output remain available;
+- both `/daily-post-test` and `/daily-live-test` resolve `test_channel_name` directly, suppress all mentions and remain independent of the stored production schedule destination;
+- `/daily-live-test` keeps newly fetched Blizzard snapshots in memory and does not write snapshots, baselines, commentary history, schedules or next-run values;
+- OpenAI commentary, Wowhead RSS filtering, character history and GitHub/GHCR publishing are unchanged; and
+- no database schema migration is required.
 
-See `TESTING.md` in the release root for the offline workflow and isolation guarantees.
+The image renderer is deterministic Python/Pillow code. No generative image model touches names, levels, professions or other live statistics. Missing optional data is omitted cleanly, and a missing scalable font or failed Components V2 delivery activates the native text fallback.
 
 ## Snapshot model
 
@@ -71,8 +56,8 @@ The Forever API can return more than one field labelled `Total deaths`. The snap
 - `/level` — looks up one character without tracking or snapshotting it.
 - `/levels` — refreshes all tracked characters, stores snapshots and reports highest to lowest.
 - `/daily-preview` — privately renders one of five deterministic synthetic daily reports. It never reads the live database.
-- `/daily-post-test` — posts synthetic character facts with live filtered Wowhead RSS and configured OpenAI commentary only to the private test channel. Requires **Manage Server**, never sends a mention and never reads the live database.
-- `/daily-live-test` — posts a fully real, read-only dress rehearsal only to exactly one channel named `bot-stuff`. Requires **Manage Server**. It aborts without posting if any tracked character's live Blizzard request fails and never writes snapshots, commentary history or schedules.
+- `/daily-post-test` — posts synthetic character facts with live filtered Wowhead RSS and configured OpenAI commentary to the channel named by `test_channel_name`. Requires **Manage Server**, never sends a mention and never reads the live database.
+- `/daily-live-test` — posts a fully real, read-only dress rehearsal to the channel named by `test_channel_name`. Requires **Manage Server**. It aborts without posting if any tracked character's live Blizzard request fails and never writes snapshots, commentary history or schedules.
 - `/schedule` — posts a daily report at a nominated local time, stores snapshots and sends `@everyone`. Requires **Manage Server**.
 - `/schedule-off` — disables the daily report. Requires **Manage Server**.
 
@@ -93,7 +78,7 @@ The scheduled post uses both `content="@everyone"` and an explicit Discord allow
 - View Channels
 - Send Messages
 - Embed Links
-- Attach Files (for `image`, `minimal_image` and `split_image`; the bot falls back to the native embed if unavailable)
+- Attach Files (for `split_image`; the bot falls back to the native embed if unavailable)
 - Read Message History
 - Use Application Commands
 - Mention @everyone, @here and All Roles
@@ -122,17 +107,16 @@ Home Assistant exposes these options:
 - `wowhead_feed_url` (must be HTTPS on `wowhead.com`)
 - `wowhead_lookback_hours` (1–72; default `24`)
 - `wowhead_keywords` (comma-separated exact topic filter)
-- `test_channel_name` (default `bot-stuff`)
-- `leaderboard_render_mode` (`minimal_image`, `split_image`, `table`, `native_embed`, `components_v2` or `image`; default `minimal_image`)
-- `leaderboard_density` (`compact`, `standard` or `detailed`)
+- `test_channel_name` (default `bot-stuff`; used by both public test commands)
+- `leaderboard_render_mode` (`split_image` or `table`; default `split_image`)
+- `split_image_rows` (2–12; default `6`)
 - `show_rank`, `show_race`, `show_class`, `show_level` and `show_level_progress`
 - `show_lifetime_deaths`, `show_professions`, `show_24h_changes`, `show_7d_changes` and `show_notable_activity`
-- `image_columns` (`one` or `two`) and `image_theme` (`dark_warcraft`, `parchment` or `minimal`)
 - `use_class_colours`, `show_class_icons` and `show_profession_icons`
 
 ## Database upgrade
 
-Version 1.10.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
+Version 1.11.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
 
 ## Forever API notes
 
@@ -147,7 +131,7 @@ Version 1.10.0 makes no database schema change. It keeps the v1.6.0 `characters`
 - A snapshot is partial: check the app log for the specific optional endpoint; the level can still be current.
 - AI commentary uses the fallback writer: confirm the OpenAI key/model and inspect the app log. The factual report remains valid.
 - No Wowhead headlines appear: no item may have matched the configured time window and Forever keywords; this is not an error.
-- Test post is refused: select the exact channel named by `test_channel_name` (default `bot-stuff`).
-- Live test is refused: ensure there is exactly one text channel named `bot-stuff`, the bot can view/send/embed there, and every tracked character can be fetched from Blizzard.
+- Test post is refused: ensure exactly one text channel matches `test_channel_name` (default `bot-stuff`) and the bot can view, send, embed and attach there.
+- Live test is refused: check the same private test-channel requirements and confirm every tracked character can be fetched from Blizzard.
 - Character not found: verify spelling, region, level and that the character logged out recently.
 - App does not start: inspect the Home Assistant app log; credentials are never written to the log by this package.

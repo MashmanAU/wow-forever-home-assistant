@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.11.0
+
+- Adds `split_image_rows` (2–12, default 6) and applies it to PNG chunking and accessible rank labels.
+- Makes `test_channel_name` the destination for both `/daily-post-test` and `/daily-live-test`, with exactly-one-channel validation and all mentions suppressed.
+- Keeps the persisted production schedule channel independent from the private test channel.
+- Retains only selectable Split Image and Table modes; Native Embed remains an automatic fallback.
+- Removes density, image-column and image-theme configuration plus the superseded detailed-image and native Components V2 delivery branches.
+- Preserves characters, SQLite history, schedules, OpenAI commentary, Wowhead RSS, read-only safeguards, GitHub/GHCR deployment and the corrected one-command publisher.
+- Makes no database schema change.
+
 ## 1.10.0
 
 - Adds the selectable `split_image` Components V2 mode with five leaderboard rows per PNG.

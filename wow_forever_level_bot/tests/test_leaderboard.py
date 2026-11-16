@@ -70,18 +70,13 @@ def _bundle() -> DailyBundle:
     )
 
 
-def test_configurable_layout_is_exactly_two_discord_markdown_lines() -> None:
-    block = leaderboard_block(_row(), density="detailed")
+def test_native_fallback_is_exactly_two_discord_markdown_lines() -> None:
+    block = leaderboard_block(_row())
     lines = block.splitlines()
     assert len(lines) == 2
     assert lines[0] == "**#2 Mash Man** ↑1 · Human Warrior · Lv **36** · `██████░░░░`"
     assert lines[1].startswith("↳ 💀 **9** · ⚒️ Blacksmithing **114/150**")
-    for expected in (
-        "24h Lv +2, 💀 +1, HK +3, iLvl +2.5",
-        "🏆 Going Up",
-        "⚒️ Blacksmithing +4",
-    ):
-        assert expected in lines[1]
+    assert "24h Lv +2, 💀 +1" in lines[1]
     assert "7d" not in lines[1]
 
 
@@ -108,13 +103,13 @@ def test_missing_optional_data_keeps_clean_two_line_layout() -> None:
         rank=None,
         rank_change=None,
     )
-    assert leaderboard_block(quiet, density="compact") == (
+    assert leaderboard_block(quiet) == (
         "**Mash Man** · Lv **36** · `██████░░░░`\n↳ 💀 **n/a**"
     )
 
 
 def test_level_cap_is_not_rendered_in_native_or_components_text() -> None:
-    block = leaderboard_block(_row(), density="detailed")
+    block = leaderboard_block(_row())
     description = leaderboard_description([_row()])
     assert "Lv **36**" in block
     assert "/60" not in block

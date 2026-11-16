@@ -58,21 +58,20 @@ from wow_forever_bot.minimal_image_renderer import (
 from test_minimal_image_renderer import _options, _rows
 
 
-def test_18_rows_split_into_five_five_five_three_without_rescaling() -> None:
+def test_18_rows_split_into_six_six_six_without_rescaling() -> None:
     generated_at = datetime(2026, 11, 16, tzinfo=timezone.utc)
     rows = _rows() * 6
     chunks = render_minimal_leaderboard_chunks(
         rows,
         options=_options(),
         generated_at=generated_at,
-        rows_per_image=5,
+        rows_per_image=6,
     )
     images = [Image.open(BytesIO(chunk)).convert("RGB") for chunk in chunks]
     assert [image.size for image in images] == [
-        (540, 278),
-        (540, 278),
-        (540, 278),
-        (540, 170),
+        (540, 332),
+        (540, 332),
+        (540, 332),
     ]
 
     source = Image.open(
@@ -99,25 +98,25 @@ def test_split_image_components_v2_is_a_vertical_stack() -> None:
         "wow-forever-leaderboard-01.png",
         "wow-forever-leaderboard-02.png",
         "wow-forever-leaderboard-03.png",
-        "wow-forever-leaderboard-04.png",
     ]
     view = build_split_image_components_v2_view(
         filenames,
         commentary="@everyone Test commentary",
         total_rows=18,
+        rows_per_image=6,
     )
     payload = view.to_components()
     assert len(payload) == 1
     children = payload[0]["components"]
     galleries = [component for component in children if component["type"] == 12]
-    assert len(galleries) == 4
+    assert len(galleries) == 3
     assert all(len(gallery["items"]) == 1 for gallery in galleries)
     assert [gallery["items"][0]["media"]["url"] for gallery in galleries] == [
         f"attachment://{filename}" for filename in filenames
     ]
-    assert galleries[-1]["items"][0]["description"].endswith("ranks 16–18")
-    assert sum(1 for component in children if component["type"] == 14) == 4
-    assert len(children) + 1 == 11
+    assert galleries[-1]["items"][0]["description"].endswith("ranks 13–18")
+    assert sum(1 for component in children if component["type"] == 14) == 3
+    assert len(children) + 1 == 9
 
 
 def test_split_image_components_paginates_container_children_safely() -> None:
@@ -125,7 +124,8 @@ def test_split_image_components_paginates_container_children_safely() -> None:
     view = build_split_image_components_v2_view(
         filenames,
         commentary="test",
-        total_rows=50,
+        total_rows=60,
+        rows_per_image=6,
     )
     payload = view.to_components()
     assert [len(container["components"]) for container in payload] == [10, 9, 1]
@@ -138,7 +138,8 @@ def test_split_image_components_rejects_more_than_ten_attachments() -> None:
         build_split_image_components_v2_view(
             filenames,
             commentary="test",
-            total_rows=55,
+            total_rows=66,
+            rows_per_image=6,
         )
     except ValueError as exc:
         assert "at most 10" in str(exc)
