@@ -1,4 +1,10 @@
-# v1.9.2 presentation comparison
+# v1.10.0 presentation comparison
+
+## Split Image — Components V2 delivery candidate
+
+`split_image_components_v2_preview.png` shows the new production path: the corrected 540 px Minimal Image is divided into ranks 1–5, 6–10, 11–15 and 16–18. Each PNG is placed in a separate one-item Media Gallery so Discord should stack the blocks vertically instead of shrinking them into a gallery grid.
+
+Select `split_image` and use `/daily-live-test` to assess the real Discord inline presentation. The existing modes below remain available unchanged.
 
 The five prototypes use the same supplied 18-character roster. The new previews include clearly labelled illustrative 24-hour level movement so the ordering and `-` behaviour can be reviewed. No generative image model is used. Re-run `python prototypes/render_prototypes.py` to reproduce every output.
 

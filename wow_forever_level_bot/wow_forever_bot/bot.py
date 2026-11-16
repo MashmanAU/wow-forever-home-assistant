@@ -12,7 +12,7 @@ from discord.ext import commands, tasks
 
 from .blizzard import BlizzardAPIError, BlizzardClient, CharacterNotFound
 from .commentary import CommentaryService
-from .components import build_components_v2_view
+from .components import build_components_v2_view, build_split_image_components_v2_view
 from .config import Settings
 from .daily import (
     DailyBundle,
@@ -29,7 +29,10 @@ from .models import (
     TrackedCharacter,
 )
 from .image_renderer import render_leaderboard_png
-from .minimal_image_renderer import render_minimal_leaderboard_png
+from .minimal_image_renderer import (
+    render_minimal_leaderboard_chunks,
+    render_minimal_leaderboard_png,
+)
 from .news import WowheadNewsClient
 from .presentation import daily_message_content, leaderboard_description
 from .table_renderer import leaderboard_table_code_blocks
@@ -299,8 +302,8 @@ class ForeverCommands(commands.Cog):
         """Send the configured production layout and return the mode actually used.
 
         Scheduled delivery and /daily-live-test both call this method, which prevents
-        preview drift. Components V2 requires a separate normal-text commentary
-        message because Discord disables message content on Components V2 messages.
+        preview drift. Native Components V2 keeps commentary in a separate normal
+        message; split-image Components V2 places it in a Text Display component.
         """
 
         mentions = allowed_mentions or discord.AllowedMentions.none()
@@ -311,6 +314,49 @@ class ForeverCommands(commands.Cog):
         )
         mode = self.bot.settings.leaderboard_render_mode
         news = self._news_embed(bundle)
+
+        if mode == "split_image":
+            try:
+                png_chunks = render_minimal_leaderboard_chunks(
+                    bundle.progress,
+                    options=self.bot.settings,
+                    generated_at=bundle.generated_at,
+                    rows_per_image=5,
+                )
+                filenames = [
+                    f"wow-forever-leaderboard-{index:02d}.png"
+                    for index in range(1, len(png_chunks) + 1)
+                ]
+                files = [
+                    discord.File(io.BytesIO(png), filename=filename)
+                    for png, filename in zip(png_chunks, filenames, strict=True)
+                ]
+                view = build_split_image_components_v2_view(
+                    filenames,
+                    commentary=content,
+                    total_rows=len(bundle.progress),
+                )
+                await channel.send(
+                    view=view,
+                    files=files,
+                    allowed_mentions=mentions,
+                )
+                if news is not None:
+                    await channel.send(
+                        embed=news,
+                        allowed_mentions=discord.AllowedMentions.none(),
+                    )
+                return "split_image"
+            except Exception:
+                LOGGER.exception(
+                    "Split-image Components V2 delivery failed; using the native text fallback"
+                )
+                await channel.send(
+                    content=content,
+                    embeds=self._daily_embeds(bundle),
+                    allowed_mentions=mentions,
+                )
+                return "native_embed_fallback"
 
         if mode in {"image", "minimal_image"}:
             try:

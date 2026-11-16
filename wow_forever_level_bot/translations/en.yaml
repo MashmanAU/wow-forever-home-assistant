@@ -59,7 +59,7 @@ configuration:
 
   leaderboard_render_mode:
     name: Leaderboard render mode
-    description: Choose minimal image, monospaced table, current image, Discord Components V2 or native embed. Native embed remains the automatic fallback.
+    description: Choose minimal image, split-image Components V2, monospaced table, detailed image, native Components V2 or native embed. Native embed remains the automatic fallback.
   leaderboard_density:
     name: Leaderboard density
     description: Choose compact, standard or detailed character rows.

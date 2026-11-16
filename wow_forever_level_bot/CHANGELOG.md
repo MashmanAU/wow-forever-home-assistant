@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.0
+
+- Adds the selectable `split_image` Components V2 mode with five leaderboard rows per PNG.
+- Renders the existing Minimal Image once and splits it without rescaling, preserving the corrected 540 px typography and all character rows.
+- Sends each PNG through a separate one-item Media Gallery so Discord presents a vertical stack instead of a shrinking gallery grid.
+- Includes commentary in a Components V2 Text Display and keeps scheduled mention controls intact.
+- Routes scheduled reports and `/daily-live-test` through the same implementation and retains the native embed fallback.
+- Extends deterministic renderer, Components V2, release and configuration tests.
+- Preserves the corrected one-command PowerShell publisher and its success/failure integration checks.
+- Makes no database schema change.
+
 ## 1.9.2
 
 - Fixes the Alpine production font lookup so installed DejaVu fonts are used instead of Pillow's tiny bitmap fallback.

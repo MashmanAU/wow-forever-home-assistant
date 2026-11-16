@@ -102,11 +102,12 @@ class Settings:
             "components_v2",
             "image",
             "minimal_image",
+            "split_image",
             "table",
         }:
             raise RuntimeError(
                 "LEADERBOARD_RENDER_MODE must be native_embed, components_v2, image, "
-                "minimal_image or table"
+                "minimal_image, split_image or table"
             )
         density = os.getenv("LEADERBOARD_DENSITY", "standard").strip().lower()
         if density not in {"compact", "standard", "detailed"}:

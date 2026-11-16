@@ -2,9 +2,9 @@
 
 A Discord bot that verifies and tracks World of Warcraft: Forever characters through Blizzard's profile API. It supports separate tracking lists and schedules for each Discord server and stores data persistently in SQLite under `/data/wow_forever.db`.
 
-## Version 1.9.2 production typography correction
+## Version 1.10.0 split-image Components V2 delivery
 
-Version 1.9.2 keeps the proven live-data, AI, Wowhead and scheduling pipeline while correcting the production Minimal Image typography:
+Version 1.10.0 keeps the corrected production typography and adds a sixth delivery mode:
 
 - OpenAI writes only a 35–75 word Azeroth radio bulletin; application code remains the source of every statistic;
 - the controlled JSON now includes XP, item level, professions, achievements, PvP, ranks, baselines, guild totals and precomputed story angles;
@@ -17,6 +17,7 @@ Version 1.9.2 keeps the proven live-data, AI, Wowhead and scheduling pipeline wh
 - `components_v2` uses Discord-native containers, text displays and separators;
 - `image` retains the detailed one/two-column deterministic Pillow dashboard;
 - `minimal_image` (the default for new installations) creates a 540 px single-column PNG with flat 54 px rows, 48 px class glyphs, 46 px level badges, immediately adjacent 18 px bold 24-hour movement, 27 px bold class-coloured names and optional deaths;
+- `split_image` renders the same Minimal Image once, divides it into five-row PNGs and exposes each attachment through its own Components V2 Media Gallery so Discord stacks the images vertically;
 - Alpine's installed DejaVu fonts are resolved from their real production path, and a missing scalable font activates the existing native fallback instead of silently producing tiny bitmap text;
 - `table` creates a Python-native monospaced Discord table with Unicode-width alignment and mobile-conscious line lengths;
 - every mode displays the level only rather than appending `/60`; level 60 is retained internally for progress calculations;
@@ -92,7 +93,7 @@ The scheduled post uses both `content="@everyone"` and an explicit Discord allow
 - View Channels
 - Send Messages
 - Embed Links
-- Attach Files (for `image` and `minimal_image`; the bot falls back to the native embed if unavailable)
+- Attach Files (for `image`, `minimal_image` and `split_image`; the bot falls back to the native embed if unavailable)
 - Read Message History
 - Use Application Commands
 - Mention @everyone, @here and All Roles
@@ -122,7 +123,7 @@ Home Assistant exposes these options:
 - `wowhead_lookback_hours` (1–72; default `24`)
 - `wowhead_keywords` (comma-separated exact topic filter)
 - `test_channel_name` (default `bot-stuff`)
-- `leaderboard_render_mode` (`minimal_image`, `table`, `native_embed`, `components_v2` or `image`; default `minimal_image`)
+- `leaderboard_render_mode` (`minimal_image`, `split_image`, `table`, `native_embed`, `components_v2` or `image`; default `minimal_image`)
 - `leaderboard_density` (`compact`, `standard` or `detailed`)
 - `show_rank`, `show_race`, `show_class`, `show_level` and `show_level_progress`
 - `show_lifetime_deaths`, `show_professions`, `show_24h_changes`, `show_7d_changes` and `show_notable_activity`
@@ -131,7 +132,7 @@ Home Assistant exposes these options:
 
 ## Database upgrade
 
-Version 1.9.2 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
+Version 1.10.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
 
 ## Forever API notes
 

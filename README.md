@@ -2,20 +2,16 @@
 
 Repository-backed Home Assistant app for the WoW Forever Discord level bot.
 
-## v1.9.2
+## v1.10.0
 
-- Fixes the production-container font lookup that caused Pillow to ignore the requested sizes and silently render names with its tiny bitmap fallback.
-- Refines `minimal_image` to a 540 px flat-row layout with 48 px class glyphs, 46 px level badges, 19 px level text, 18 px bold 24-hour movement and 27 px bold class-coloured names.
-- Vertically centres the entire icon → level → 24h → name → optional deaths group in compact 54 px rows.
-- Makes a missing scalable font fail into the existing native Discord fallback instead of publishing an unreadable PNG.
-- Removes the displayed `/60` suffix from levels in every leaderboard presentation while retaining level 60 internally for progress calculations.
-- Preserves the Python-native `table` mode with Unicode-width alignment, Character → Level → 24h → optional 7d → Deaths ordering and `-` for no change.
-- Preserves the existing native embed, Components V2 and detailed image modes plus every Home Assistant display control.
-- Defaults new installations to the simplified minimal image fields; existing installations retain saved options.
-- Keeps announcer commentary as normal Discord message text.
-- Uses the same delivery path for scheduled reports and `/daily-live-test`.
-- Falls back to the native text embed if either image renderer or Components V2 delivery fails.
-- Preserves live Blizzard data, snapshot history, OpenAI commentary, Wowhead RSS, scheduling and `@everyone` behaviour.
-- Retains the guarded one-command `publish.ps1` release workflow with package checksum, version and sensitive-file validation.
+- Adds `split_image`, a Components V2 delivery mode that renders the proven Minimal Image design as five-row PNG chunks.
+- Sends an 18-character roster as four vertically stacked media blocks containing 5, 5, 5 and 3 rows.
+- Uses one Media Gallery per attachment rather than a multi-image gallery grid, preserving the 540 px image width and existing typography.
+- Keeps commentary in a Components V2 Text Display and preserves scheduled `@everyone` controls.
+- Uses the same production sender for scheduled reports and the read-only `/daily-live-test`.
+- Falls back to the native text embed if rendering, attachment creation or Components V2 delivery fails.
+- Retains `minimal_image` as the default until the split layout has been assessed in the real Discord client.
+- Preserves the corrected one-command `publish.ps1` workflow, including manifest, version, secret-file and Git exit-code validation.
+- Makes no database schema change.
 
-See `prototypes/COMPARISON.md` for the five-mode comparison, `PUBLISHING.md` for the one-command workflow and `DEPLOY_V1.9.2.md` for the safe GitHub/GHCR update procedure.
+See `prototypes/split_image_components_v2_preview.png`, `PUBLISHING.md` and `DEPLOY_V1.10.0.md`.

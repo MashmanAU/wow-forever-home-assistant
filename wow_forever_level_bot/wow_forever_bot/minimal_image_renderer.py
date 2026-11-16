@@ -246,3 +246,54 @@ def render_minimal_leaderboard_png(
     output = BytesIO()
     image.save(output, format="PNG", optimize=False, compress_level=9)
     return output.getvalue()
+
+
+def render_minimal_leaderboard_chunks(
+    progress: tuple[SnapshotProgress, ...] | list[SnapshotProgress],
+    *,
+    options: Any,
+    generated_at: Any,
+    rows_per_image: int = 5,
+) -> tuple[bytes, ...]:
+    """Render the Minimal Image once and split it into short, lossless row chunks.
+
+    The production typography and row geometry remain exactly the same as the
+    single-image renderer. Each output repeats only the four-pixel outer padding;
+    every character row appears once and in the original order.
+    """
+
+    rows = list(progress)
+    if rows_per_image < 1:
+        raise ValueError("rows_per_image must be at least 1")
+    if not rows:
+        return ()
+
+    rendered = render_minimal_leaderboard_png(
+        rows,
+        options=options,
+        generated_at=generated_at,
+    )
+    with Image.open(BytesIO(rendered)) as opened:
+        source = opened.convert("RGB")
+
+    outer_padding = 4
+    content_height = source.height - outer_padding * 2
+    if content_height <= 0 or content_height % len(rows):
+        raise RuntimeError("Minimal Image row geometry could not be split safely")
+    row_height = content_height // len(rows)
+
+    chunks: list[bytes] = []
+    for start in range(0, len(rows), rows_per_image):
+        end = min(start + rows_per_image, len(rows))
+        top = outer_padding + start * row_height
+        bottom = outer_padding + end * row_height
+        chunk = Image.new(
+            "RGB",
+            (source.width, outer_padding * 2 + bottom - top),
+            source.getpixel((0, 0)),
+        )
+        chunk.paste(source.crop((0, top, source.width, bottom)), (0, outer_padding))
+        output = BytesIO()
+        chunk.save(output, format="PNG", optimize=False, compress_level=9)
+        chunks.append(output.getvalue())
+    return tuple(chunks)

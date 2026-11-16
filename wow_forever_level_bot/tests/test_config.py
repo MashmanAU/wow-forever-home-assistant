@@ -73,7 +73,10 @@ def test_display_settings_are_configurable(monkeypatch) -> None:
     assert settings.image_theme == "parchment"
 
 
-@pytest.mark.parametrize("mode", ("minimal_image", "table", "native_embed", "components_v2", "image"))
+@pytest.mark.parametrize(
+    "mode",
+    ("minimal_image", "split_image", "table", "native_embed", "components_v2", "image"),
+)
 def test_every_render_mode_is_selectable(monkeypatch, mode: str) -> None:
     monkeypatch.setenv("DISCORD_TOKEN", "discord")
     monkeypatch.setenv("BLIZZARD_CLIENT_ID", "id")

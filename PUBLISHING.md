@@ -2,12 +2,12 @@
 
 `publish.ps1` turns a repository-ready WoW Forever review ZIP into one Git commit and pushes it to `main`.
 
-## Normal workflow from v1.9.1 onwards
+## Normal workflow
 
 Open PowerShell in the cloned `wow-forever-home-assistant` repository and run:
 
 ```powershell
-.\publish.ps1 "C:\Users\you\Downloads\WoW-Forever-Home-Assistant-v1.9.1-review.zip"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\publish.ps1" -RepositoryPath "C:\Users\jagra\OneDrive\WowForeverBot\wow-forever-home-assistant"
 ```
 
 The script will:
@@ -26,15 +26,15 @@ Git commonly writes ordinary progress and informational messages to stderr. Line
 
 After the push, wait for both GitHub Actions workflows to turn green, then use **Home Assistant → Check for updates → Update**.
 
-## First use: publishing v1.9.1
+## Running from an extracted review package
 
-The v1.9.1 review package also carries a bootstrap copy of `publish.ps1` beside its `repo` folder. Extract the package, open PowerShell in the extracted package folder and run:
+The review package carries a copy of `publish.ps1` beside its `repo` folder. Extract the package, open PowerShell in the extracted package folder and run:
 
 ```powershell
 .\publish.ps1 -RepositoryPath "C:\path\to\wow-forever-home-assistant"
 ```
 
-This publishes the extracted v1.9.1 `repo` folder and installs `publish.ps1` into the clone. Future releases can use the shorter command from the repository folder.
+With no `ReleasePath` argument, the script automatically publishes the sibling `repo` folder and updates the publisher in the clone. Future releases can use the publisher already in the repository.
 
 If Windows blocks local scripts, use the process-only bypass without changing the machine policy:
 
@@ -61,7 +61,7 @@ The release ZIP should be kept outside the Git clone so the clean-tree check is 
 To create the release commit locally but not push it:
 
 ```powershell
-.\publish.ps1 "C:\Users\you\Downloads\WoW-Forever-Home-Assistant-v1.9.1-review.zip" -NoPush
+.\publish.ps1 "C:\Users\you\Downloads\WoW-Forever-Home-Assistant-v1.10.0-review.zip" -NoPush
 ```
 
 Review it with:
