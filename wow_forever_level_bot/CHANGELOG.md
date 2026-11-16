@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.13.0
+
+- Adds a Home Assistant `daily_notification` setting with `everyone`, `here` and `none` choices.
+- Keeps `everyone` as the default so existing scheduled reports retain their current notification behaviour after upgrade.
+- Applies the selected notification only to scheduled production reports; `/daily-post-test` and `/daily-live-test` continue to suppress every mention.
+- Requires Discord's Mention Everyone permission only when `everyone` or `here` is selected, while no-notification schedules can be saved without it.
+- Reads the setting at runtime after Save + Restart, so changing it does not require rerunning `/schedule` and does not alter the persisted destination or time.
+- Preserves Split Image/Table presentation, class icons, announcer behaviour, tracked data, schedules, Wowhead controls and read-only safeguards.
+- Makes no database schema change.
+
 ## 1.12.0
 
 - Replaces generated glyphs for the nine WoW Forever classes with the 64×64 PNGs from `orourkek/Wow-Icons`.

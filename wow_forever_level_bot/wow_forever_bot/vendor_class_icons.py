@@ -70,7 +70,7 @@ def vendor_icons(target: Path, *, timeout_seconds: float = 30) -> None:
     for filename in CLASS_ICON_FILES:
         request = Request(
             f"{SOURCE_ROOT}/{filename}",
-            headers={"User-Agent": "wow-forever-home-assistant-build/1.12.0"},
+            headers={"User-Agent": "wow-forever-home-assistant-build/1.13.0"},
         )
         with urlopen(request, timeout=timeout_seconds) as response:
             data = response.read()

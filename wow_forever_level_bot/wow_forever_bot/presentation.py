@@ -221,13 +221,25 @@ def leaderboard_description(
 def daily_message_content(
     bundle: DailyBundle,
     *,
-    mention_everyone: bool = False,
+    notification: str = "none",
     notice: str | None = None,
 ) -> str:
     parts: list[str] = []
-    if mention_everyone:
-        parts.append("@everyone")
+    mention = daily_notification_mention(notification)
+    if mention:
+        parts.append(mention)
     if notice:
         parts.append(notice)
     parts.extend(("📻 **WoW Forever daily**", bundle.commentary.text))
     return "\n\n".join(parts)
+
+
+def daily_notification_mention(notification: str) -> str:
+    try:
+        return {
+            "everyone": "@everyone",
+            "here": "@here",
+            "none": "",
+        }[notification]
+    except KeyError as exc:
+        raise ValueError("Daily notification must be everyone, here or none") from exc

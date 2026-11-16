@@ -22,6 +22,7 @@ export COMMENTARY_CHARACTER_BANTER="$(bashio::config 'commentary_character_bante
 export WOWHEAD_FEED_URL="$(bashio::config 'wowhead_feed_url')"
 export WOWHEAD_LOOKBACK_HOURS="$(bashio::config 'wowhead_lookback_hours')"
 export WOWHEAD_KEYWORDS="$(bashio::config 'wowhead_keywords')"
+export DAILY_NOTIFICATION="$(bashio::config 'daily_notification')"
 export TEST_CHANNEL_NAME="$(bashio::config 'test_channel_name')"
 export LEADERBOARD_RENDER_MODE="$(bashio::config 'leaderboard_render_mode')"
 export SPLIT_IMAGE_ROWS="$(bashio::config 'split_image_rows')"

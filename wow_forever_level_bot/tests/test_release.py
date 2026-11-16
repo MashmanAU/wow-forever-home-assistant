@@ -7,10 +7,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_release_versions_and_home_assistant_build_metadata() -> None:
-    assert __version__ == "1.12.0"
+    assert __version__ == "1.13.0"
     config = (ROOT / "config.yaml").read_text()
-    assert 'version: "1.12.0"' in config
-    assert 'version = "1.12.0"' in (ROOT / "pyproject.toml").read_text()
+    assert 'version: "1.13.0"' in config
+    assert 'version = "1.13.0"' in (ROOT / "pyproject.toml").read_text()
     assert "image: ghcr.io/mashmanau/{arch}-wow-forever-level-bot" in config
     assert not (ROOT / "build.yaml").exists()
 
@@ -165,6 +165,33 @@ def test_home_assistant_exposes_display_customisation() -> None:
     for removed in ("leaderboard_density", "image_columns", "image_theme"):
         assert removed not in config
         assert removed.upper() not in run
+
+
+def test_home_assistant_exposes_the_daily_notification_setting() -> None:
+    config = (ROOT / "config.yaml").read_text()
+    run = (ROOT / "run.sh").read_text()
+    translations = (ROOT / "translations" / "en.yaml").read_text()
+    assert "daily_notification: everyone" in config
+    assert "daily_notification: list(everyone|here|none)" in config
+    assert "DAILY_NOTIFICATION" in run
+    assert "name: Daily notification" in translations
+
+
+def test_scheduled_reports_use_the_configured_notification_only() -> None:
+    source = (ROOT / "wow_forever_bot" / "bot.py").read_text()
+    worker = source.split("async def schedule_worker", 1)[1].split(
+        "@schedule_worker.before_loop", 1
+    )[0]
+    schedule_command = source.split('name="schedule"', 1)[1].split(
+        'name="schedule-off"', 1
+    )[0]
+    assert "self.bot.settings.daily_notification" in worker
+    assert "daily_notification_mention(notification)" in worker
+    assert "self._daily_allowed_mentions(notification)" in worker
+    assert "notification=notification" in worker
+    assert 'content = "@everyone"' not in worker
+    assert "self.bot.settings.daily_notification != \"none\"" in schedule_command
+    assert "Scheduled reports will not send a Discord notification." in schedule_command
 
 
 def test_both_test_commands_resolve_the_configured_channel_and_suppress_mentions() -> None:

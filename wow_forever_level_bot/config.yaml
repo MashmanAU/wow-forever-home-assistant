@@ -1,5 +1,5 @@
 name: WoW Forever Level Bot
-version: "1.12.0"
+version: "1.13.0"
 slug: wow_forever_level_bot
 description: Discord bot with split-image Components V2 and monospaced table leaderboards.
 url: https://develop.battle.net/documentation/world-of-warcraft/profile-apis
@@ -29,6 +29,7 @@ options:
   wowhead_feed_url: https://www.wowhead.com/news/rss/all
   wowhead_lookback_hours: 24
   wowhead_keywords: wow forever,world of warcraft forever,forever realms,forever realm,forever hardcore
+  daily_notification: everyone
   test_channel_name: bot-stuff
   leaderboard_render_mode: split_image
   split_image_rows: 6
@@ -64,6 +65,7 @@ schema:
   wowhead_feed_url: str
   wowhead_lookback_hours: int(1,72)
   wowhead_keywords: str
+  daily_notification: list(everyone|here|none)
   test_channel_name: str
   leaderboard_render_mode: list(split_image|table)
   split_image_rows: int(2,12)

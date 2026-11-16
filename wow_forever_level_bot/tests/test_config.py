@@ -27,6 +27,7 @@ def test_settings_defaults(monkeypatch) -> None:
     assert settings.show_race is False
     assert settings.show_professions is False
     assert settings.show_notable_activity is False
+    assert settings.daily_notification == "everyone"
 
 
 def test_ai_and_preview_defaults(monkeypatch) -> None:
@@ -66,6 +67,20 @@ def test_retained_display_settings_are_configurable(monkeypatch) -> None:
     assert settings.split_image_rows == 8
     assert settings.show_professions is False
     assert settings.show_7d_changes is True
+
+
+@pytest.mark.parametrize("value", ("everyone", "here", "none"))
+def test_daily_notification_options_are_configurable(monkeypatch, value: str) -> None:
+    _credentials(monkeypatch)
+    monkeypatch.setenv("DAILY_NOTIFICATION", value)
+    assert Settings.from_env().daily_notification == value
+
+
+def test_invalid_daily_notification_is_rejected(monkeypatch) -> None:
+    _credentials(monkeypatch)
+    monkeypatch.setenv("DAILY_NOTIFICATION", "channel")
+    with pytest.raises(RuntimeError, match="everyone, here or none"):
+        Settings.from_env()
 
 
 @pytest.mark.parametrize("mode", ("split_image", "table"))

@@ -47,6 +47,7 @@ class Settings:
         "forever realm",
         "forever hardcore",
     )
+    daily_notification: str = "everyone"
     test_channel_name: str = "bot-stuff"
     leaderboard_render_mode: str = "split_image"
     split_image_rows: int = 6
@@ -97,6 +98,9 @@ class Settings:
         render_mode = os.getenv("LEADERBOARD_RENDER_MODE", "split_image").strip().lower()
         if render_mode not in {"split_image", "table"}:
             raise RuntimeError("LEADERBOARD_RENDER_MODE must be split_image or table")
+        daily_notification = os.getenv("DAILY_NOTIFICATION", "everyone").strip().lower()
+        if daily_notification not in {"everyone", "here", "none"}:
+            raise RuntimeError("DAILY_NOTIFICATION must be everyone, here or none")
         split_image_rows = int(os.getenv("SPLIT_IMAGE_ROWS", "6"))
         if not 2 <= split_image_rows <= 12:
             raise RuntimeError("SPLIT_IMAGE_ROWS must be between 2 and 12")
@@ -137,6 +141,7 @@ class Settings:
             ).strip(),
             wowhead_lookback_hours=lookback,
             wowhead_keywords=keywords,
+            daily_notification=daily_notification,
             test_channel_name=os.getenv("TEST_CHANNEL_NAME", "bot-stuff").strip()
             or "bot-stuff",
             leaderboard_render_mode=render_mode,

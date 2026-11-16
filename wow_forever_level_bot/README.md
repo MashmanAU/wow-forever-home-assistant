@@ -2,18 +2,17 @@
 
 A Discord bot that verifies and tracks World of Warcraft: Forever characters through Blizzard's profile API. It supports separate tracking lists and schedules for each Discord server and stores data persistently in SQLite under `/data/wow_forever.db`.
 
-## Version 1.12.0 class icons and announcer reset
+## Version 1.13.0 configurable daily notification
 
-Version 1.12.0 keeps the proven v1.11.0 presentation and configuration while improving the two agreed areas:
+Version 1.13.0 adds one production-notification control while retaining the proven v1.12.0 presentation, class icons and announcer behaviour:
 
-- the Split Image renderer uses the complete 64×64 PNG Classic class-icon set from `orourkek/Wow-Icons` for Druid, Hunter, Mage, Paladin, Priest, Rogue, Shaman, Warlock and Warrior;
-- the icon source is pinned to commit `5d9ad053876920138f68d69a4197fc18771b9505`, validated during the container build and distributed under the included Unlicense notice;
-- the running bot never downloads artwork: GitHub Actions vendors the assets into the container and the renderer falls back to its deterministic glyph if a local icon is missing or invalid;
-- story selection now asks what is genuinely most significant, novel within today's verified facts and entertaining, without preferring or penalising any category;
-- significant levelling can lead on consecutive days when it remains the real story;
-- anti-repetition applies to language, framing, jokes and sentence structure rather than suppressing a repeated factual topic;
-- `announcer_style`, `announcer_custom_notes`, news emphasis and character banter remain editable style controls, while grounding and output limits remain code-owned;
-- Split Image and Table remain the only selectable modes, `split_image_rows` remains 2–12 with a default of `6`, and the configured private test-channel behaviour is unchanged; and
+- `daily_notification` selects `everyone`, `here` or `none` in Home Assistant;
+- `everyone` remains the default, preserving existing scheduled behaviour after upgrade;
+- the selected value applies only to scheduled production reports;
+- `/daily-post-test` and `/daily-live-test` always suppress mentions regardless of the setting;
+- Save + Restart is sufficient after changing the setting; the persisted schedule, time and destination do not need to be recreated;
+- `/schedule` checks **Mention @everyone, @here and All Roles** only when `everyone` or `here` is selected;
+- Split Image and Table remain the only selectable modes, including the existing native text fallback; and
 - no database schema migration is required.
 
 The image renderer is deterministic Python/Pillow code. No generative image model touches names, levels, professions or other live statistics. Missing optional data is omitted cleanly, and a missing scalable font or failed Components V2 delivery activates the native text fallback.
@@ -56,7 +55,7 @@ The Forever API can return more than one field labelled `Total deaths`. The snap
 - `/daily-preview` — privately renders one of five deterministic synthetic daily reports. It never reads the live database.
 - `/daily-post-test` — posts synthetic character facts with live filtered Wowhead RSS and configured OpenAI commentary to the channel named by `test_channel_name`. Requires **Manage Server**, never sends a mention and never reads the live database.
 - `/daily-live-test` — posts a fully real, read-only dress rehearsal to the channel named by `test_channel_name`. Requires **Manage Server**. It aborts without posting if any tracked character's live Blizzard request fails and never writes snapshots, commentary history or schedules.
-- `/schedule` — posts a daily report at a nominated local time, stores snapshots and sends `@everyone`. Requires **Manage Server**.
+- `/schedule` — posts a daily report at a nominated local time, stores snapshots and uses the configured daily notification. Requires **Manage Server**.
 - `/schedule-off` — disables the daily report. Requires **Manage Server**.
 
 ## Daily schedule
@@ -69,7 +68,7 @@ Use `/schedule` with:
 
 The schedule is stored as local wall-clock time and recalculated after each run, so daylight-saving changes do not move an 8:30 pm schedule. Running `/schedule` again replaces the server's existing schedule.
 
-The scheduled post uses both `content="@everyone"` and an explicit Discord allowed-mentions policy. Discord will only deliver the alert if the bot role has **Mention @everyone, @here and All Roles** in the destination channel. `/schedule` checks this permission before saving.
+Scheduled posts use the `daily_notification` setting: `everyone` sends `@everyone`, `here` sends `@here`, and `none` sends no mention. The default is `everyone`. Discord will only deliver either mention if the bot role has **Mention @everyone, @here and All Roles** in the destination channel. `/schedule` checks that permission when either notifying option is selected. Changing the setting requires Save + Restart only; the existing schedule remains valid.
 
 ## Required Discord permissions
 
@@ -104,7 +103,8 @@ Home Assistant exposes these options:
 - `commentary_character_banter` (`low`, `normal` or `high`)
 - `wowhead_feed_url` (must be HTTPS on `wowhead.com`)
 - `wowhead_lookback_hours` (1–72; default `24`)
-- `wowhead_keywords` (comma-separated exact topic filter)
+- `wowhead_keywords` (optional comma-separated exact topic filter; blank disables keyword filtering)
+- `daily_notification` (`everyone`, `here` or `none`; default `everyone`)
 - `test_channel_name` (default `bot-stuff`; used by both public test commands)
 - `leaderboard_render_mode` (`split_image` or `table`; default `split_image`)
 - `split_image_rows` (2–12; default `6`)
@@ -114,7 +114,7 @@ Home Assistant exposes these options:
 
 ## Database upgrade
 
-Version 1.12.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
+Version 1.13.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The notification choice is global Home Assistant app configuration, not schedule data. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
 
 ## Forever API notes
 
@@ -125,7 +125,7 @@ Version 1.12.0 makes no database schema change. It keeps the v1.6.0 `characters`
 
 ## Troubleshooting
 
-- `@everyone` appears as plain text: grant the bot role **Mention @everyone, @here and All Roles** in the report channel, then rerun `/schedule`.
+- `@everyone` or `@here` appears as plain text: grant the bot role **Mention @everyone, @here and All Roles** in the report channel, then confirm the configured daily notification. Rerunning `/schedule` is required only if the destination or time also needs to change.
 - A snapshot is partial: check the app log for the specific optional endpoint; the level can still be current.
 - AI commentary uses the fallback writer: confirm the OpenAI key/model and inspect the app log. The factual report remains valid.
 - No Wowhead headlines appear: no item may have matched the configured time window and Forever keywords; this is not an error.

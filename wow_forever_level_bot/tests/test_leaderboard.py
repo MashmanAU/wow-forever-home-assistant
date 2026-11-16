@@ -1,6 +1,8 @@
 from dataclasses import replace
 from datetime import datetime, timezone
 
+import pytest
+
 from wow_forever_bot.commentary import CommentaryResult
 from wow_forever_bot.daily import DailyBundle
 from wow_forever_bot.models import (
@@ -133,6 +135,18 @@ def test_every_character_stays_inside_one_embed_description() -> None:
     assert "Mash20 Man" in description
 
 
-def test_commentary_is_normal_message_text() -> None:
-    content = daily_message_content(_bundle(), mention_everyone=True)
-    assert content == "@everyone\n\n📻 **WoW Forever daily**\n\nFresh facts from Azeroth."
+@pytest.mark.parametrize(
+    ("notification", "prefix"),
+    (("everyone", "@everyone\n\n"), ("here", "@here\n\n"), ("none", "")),
+)
+def test_commentary_uses_the_configured_notification(
+    notification: str,
+    prefix: str,
+) -> None:
+    content = daily_message_content(_bundle(), notification=notification)
+    assert content == prefix + "📻 **WoW Forever daily**\n\nFresh facts from Azeroth."
+
+
+def test_invalid_daily_notification_cannot_be_rendered() -> None:
+    with pytest.raises(ValueError, match="everyone, here or none"):
+        daily_message_content(_bundle(), notification="channel")

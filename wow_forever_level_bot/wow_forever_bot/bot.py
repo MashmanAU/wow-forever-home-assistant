@@ -30,7 +30,11 @@ from .models import (
 )
 from .minimal_image_renderer import render_minimal_leaderboard_chunks
 from .news import WowheadNewsClient
-from .presentation import daily_message_content, leaderboard_description
+from .presentation import (
+    daily_message_content,
+    daily_notification_mention,
+    leaderboard_description,
+)
 from .table_renderer import leaderboard_table_code_blocks
 from .scheduling import (
     next_daily_run,
@@ -224,13 +228,26 @@ class ForeverCommands(commands.Cog):
     def _daily_message_content(
         bundle: DailyBundle,
         *,
-        mention_everyone: bool = False,
+        notification: str = "none",
         notice: str | None = None,
     ) -> str:
         return daily_message_content(
             bundle,
-            mention_everyone=mention_everyone,
+            notification=notification,
             notice=notice,
+        )
+
+    @staticmethod
+    def _daily_allowed_mentions(notification: str) -> discord.AllowedMentions:
+        if notification == "none":
+            return discord.AllowedMentions.none()
+        if notification not in {"everyone", "here"}:
+            raise ValueError("Daily notification must be everyone, here or none")
+        return discord.AllowedMentions(
+            everyone=True,
+            users=False,
+            roles=False,
+            replied_user=False,
         )
 
     def _leaderboard_embed(self, bundle: DailyBundle) -> discord.Embed:
@@ -312,7 +329,7 @@ class ForeverCommands(commands.Cog):
         channel: discord.abc.Messageable,
         bundle: DailyBundle,
         *,
-        mention_everyone: bool = False,
+        notification: str = "none",
         notice: str | None = None,
         allowed_mentions: discord.AllowedMentions | None = None,
     ) -> str:
@@ -325,7 +342,7 @@ class ForeverCommands(commands.Cog):
         mentions = allowed_mentions or discord.AllowedMentions.none()
         content = self._daily_message_content(
             bundle,
-            mention_everyone=mention_everyone,
+            notification=notification,
             notice=notice,
         )
         mode = self.bot.settings.leaderboard_render_mode
@@ -414,7 +431,9 @@ class ForeverCommands(commands.Cog):
                 results = await self._refresh_guild(schedule.guild_id)
                 embeds = self._report_embeds(results)
                 daily: DailyBundle | None = None
-                content = "@everyone"
+                notification = self.bot.settings.daily_notification
+                content = daily_notification_mention(notification) or None
+                allowed_mentions = self._daily_allowed_mentions(notification)
                 if self.bot.settings.commentary_enabled:
                     try:
                         daily = await build_live_daily_bundle(
@@ -427,7 +446,7 @@ class ForeverCommands(commands.Cog):
                         embeds = self._daily_embeds(daily)
                         content = self._daily_message_content(
                             daily,
-                            mention_everyone=True,
+                            notification=notification,
                         )
                     except Exception:
                         LOGGER.exception(
@@ -437,24 +456,14 @@ class ForeverCommands(commands.Cog):
                     await self._send_daily_report(
                         channel,
                         daily,
-                        mention_everyone=True,
-                        allowed_mentions=discord.AllowedMentions(
-                            everyone=True,
-                            users=False,
-                            roles=False,
-                            replied_user=False,
-                        ),
+                        notification=notification,
+                        allowed_mentions=allowed_mentions,
                     )
                 else:
                     await channel.send(
                         content=content,
                         embeds=embeds,
-                        allowed_mentions=discord.AllowedMentions(
-                            everyone=True,
-                            users=False,
-                            roles=False,
-                            replied_user=False,
-                        ),
+                        allowed_mentions=allowed_mentions,
                     )
                 if daily is not None:
                     try:
@@ -831,7 +840,7 @@ class ForeverCommands(commands.Cog):
 
     @app_commands.command(
         name="schedule",
-        description="Post an @everyone level report every day at a specific local time.",
+        description="Post the configured level report every day at a specific local time.",
     )
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
@@ -859,7 +868,10 @@ class ForeverCommands(commands.Cog):
                 missing.append("Send Messages")
             if not permissions.embed_links:
                 missing.append("Embed Links")
-            if not permissions.mention_everyone:
+            if (
+                self.bot.settings.daily_notification != "none"
+                and not permissions.mention_everyone
+            ):
                 missing.append("Mention @everyone, @here and All Roles")
             if missing:
                 await interaction.response.send_message(
@@ -885,10 +897,16 @@ class ForeverCommands(commands.Cog):
                 next_run_utc=next_run,
             )
         )
+        notification = self.bot.settings.daily_notification
+        notification_status = (
+            f"Each scheduled report will notify **{daily_notification_mention(notification)}**."
+            if notification != "none"
+            else "Scheduled reports will not send a Discord notification."
+        )
         await interaction.response.send_message(
             f"Daily report scheduled for {discord.utils.format_dt(next_run, style='F')} "
             f"in {channel.mention}, then every day at **{normalised_time}** "
-            f"(**{timezone_name}**). Each scheduled report will notify **@everyone**.",
+            f"(**{timezone_name}**). {notification_status}",
             ephemeral=True,
             allowed_mentions=discord.AllowedMentions.none(),
         )

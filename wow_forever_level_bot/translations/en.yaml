@@ -52,7 +52,10 @@ configuration:
     description: Hours of RSS headlines considered for each scheduled report.
   wowhead_keywords:
     name: Wowhead Forever keywords
-    description: Comma-separated phrases used to exclude unrelated WoW editions and shop news.
+    description: Optional comma-separated phrases used to exclude unrelated WoW editions and shop news. Leave blank to accept every headline from the configured feed.
+  daily_notification:
+    name: Daily notification
+    description: Notification used only by scheduled production reports. Choose everyone for @everyone, here for @here, or none for no mention. Both test commands always suppress mentions.
   test_channel_name:
     name: Private test channel
     description: Exact Discord channel name used by /daily-post-test and /daily-live-test. Test posts suppress all mentions and never change the production schedule channel.
