@@ -194,3 +194,50 @@ def test_snapshot_round_trip_and_progress_derivation(tmp_path) -> None:
         assert await store.list_snapshots(10, "Mash", "Man", "us") == []
 
     asyncio.run(scenario())
+
+
+def test_24h_baseline_uses_nearest_daily_snapshot_despite_scheduler_jitter(tmp_path) -> None:
+    async def scenario() -> None:
+        store = Store(str(tmp_path / "jitter.db"))
+        await store.initialize()
+        profile = CharacterProfile("Elrys", "Shadowbane", "us", 40)
+        assert await store.add_character(10, profile, 99)
+
+        current_at = datetime(2026, 11, 16, 5, 30, tzinfo=UTC)
+        two_days_ago = current_at - timedelta(hours=47, minutes=55)
+        yesterday = current_at - timedelta(hours=23, minutes=55)
+        await store.save_snapshot(
+            10, snapshot("Elrys", "Shadowbane", two_days_ago, 38, 0, 0)
+        )
+        await store.save_snapshot(
+            10, snapshot("Elrys", "Shadowbane", yesterday, 39, 0, 0)
+        )
+        await store.save_snapshot(
+            10, snapshot("Elrys", "Shadowbane", current_at, 40, 0, 0)
+        )
+
+        progress = await store.snapshot_progress(10, current_at)
+        assert len(progress) == 1
+        assert progress[0].baseline_24h_at == yesterday
+        assert progress[0].levels_24h == 1
+
+    asyncio.run(scenario())
+
+
+def test_24h_delta_is_unknown_without_a_near_daily_baseline(tmp_path) -> None:
+    async def scenario() -> None:
+        store = Store(str(tmp_path / "stale.db"))
+        await store.initialize()
+        profile = CharacterProfile("Elrys", "Shadowbane", "us", 40)
+        assert await store.add_character(10, profile, 99)
+
+        current_at = datetime(2026, 11, 16, 5, 30, tzinfo=UTC)
+        stale = current_at - timedelta(hours=40)
+        await store.save_snapshot(10, snapshot("Elrys", "Shadowbane", stale, 38, 0, 0))
+        await store.save_snapshot(10, snapshot("Elrys", "Shadowbane", current_at, 40, 0, 0))
+
+        progress = await store.snapshot_progress(10, current_at)
+        assert progress[0].baseline_24h_at is None
+        assert progress[0].levels_24h is None
+
+    asyncio.run(scenario())

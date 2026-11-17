@@ -681,15 +681,40 @@ class Store:
         for key, latest in current.items():
             history = grouped[key]
             target_24 = latest.captured_at - timedelta(hours=24)
-            minimum_24 = latest.captured_at - timedelta(hours=48)
-            choices_24 = [item for item in history if minimum_24 <= item.captured_at <= target_24]
+            # Scheduled runs rarely land on the identical second each day. The old
+            # one-sided 24-48 hour window rejected a snapshot that was, for example,
+            # 23h 59m old and then compared against the snapshot from two days ago.
+            # Select the observation nearest the intended 24-hour mark instead, with
+            # enough tolerance for scheduler jitter and daylight-saving transitions.
+            choices_24 = [
+                item
+                for item in history
+                if item.captured_at < latest.captured_at
+                and abs(item.captured_at - target_24) <= timedelta(hours=6)
+            ]
             if choices_24:
-                baseline_24[key] = choices_24[-1]
+                baseline_24[key] = min(
+                    choices_24,
+                    key=lambda item: (
+                        abs(item.captured_at - target_24),
+                        -item.captured_at.timestamp(),
+                    ),
+                )
             target_7d = latest.captured_at - timedelta(days=7)
-            minimum_7d = latest.captured_at - timedelta(days=8)
-            choices_7d = [item for item in history if minimum_7d <= item.captured_at <= target_7d]
+            choices_7d = [
+                item
+                for item in history
+                if item.captured_at < latest.captured_at
+                and abs(item.captured_at - target_7d) <= timedelta(hours=12)
+            ]
             if choices_7d:
-                baseline_7d[key] = choices_7d[-1]
+                baseline_7d[key] = min(
+                    choices_7d,
+                    key=lambda item: (
+                        abs(item.captured_at - target_7d),
+                        -item.captured_at.timestamp(),
+                    ),
+                )
 
         previous_ranks: dict[tuple[str, str, str], int] = {}
         if current and len(baseline_24) == len(current):

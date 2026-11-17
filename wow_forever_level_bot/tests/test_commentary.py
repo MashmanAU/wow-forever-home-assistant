@@ -46,8 +46,12 @@ def test_controlled_payload_is_rich_factual_and_history_aware(tmp_path: Path) ->
     assert payload["commentary_direction"]["primary_story_angle"] in {
         item["angle"] for item in payload["story_candidates"]
     }
+    assert all(
+        isinstance(item["significance_score"], float)
+        for item in payload["story_candidates"]
+    )
     assert payload["commentary_direction"]["primary_story_angle_is_fallback_hint"] is True
-    assert "No activity category is preferred" in payload["commentary_direction"]["selection_rule"]
+    assert "Do not treat raw profession points as equivalent" in payload["commentary_direction"]["selection_rule"]
 
 
 def test_fallback_is_short_and_uses_selected_non_repetitive_angle(tmp_path: Path) -> None:
@@ -94,6 +98,43 @@ def test_significant_levelling_can_remain_the_lead_story() -> None:
         },
     ]
     assert _select_story_angle(candidates) == "level-race"
+
+
+def test_one_high_character_level_outweighs_fifty_low_profession_points() -> None:
+    candidates = [
+        {
+            "angle": "gear-and-craft",
+            "facts": [
+                {
+                    "character": "Crafter",
+                    "profession_gains": [
+                        {
+                            "profession": "Mining",
+                            "gain": 50,
+                            "skill": 55,
+                            "maximum": 300,
+                        }
+                    ],
+                }
+            ],
+        },
+        {
+            "angle": "level-race",
+            "facts": [{"character": "Elrys", "levels_24h": 1, "level": 40}],
+        },
+    ]
+    assert _select_story_angle(candidates) == "level-race"
+
+
+def test_commentary_payload_includes_profession_scale_context(tmp_path: Path) -> None:
+    payload = asyncio.run(_build_payload(tmp_path))
+    gains = [
+        gain
+        for character in payload["characters"]
+        for gain in character["profession_skill_gains_24h"]
+    ]
+    assert gains
+    assert all("skill" in gain and "maximum" in gain for gain in gains)
 
 
 class _FakeResponse:
@@ -182,7 +223,9 @@ def test_openai_request_uses_radio_prompt_structured_output_and_bearer_auth(
         assert "Azeroth sports desk" in prompt
         assert "motivational newsletter" in prompt
         assert "If levelling is clearly the biggest story" in prompt
-        assert "There is no preferred category" in prompt
+        assert "There is no automatically preferred category" in prompt
+        assert "Never equate raw profession points with character levels" in prompt
+        assert "significance_score as the normalised cross-scale comparison" in prompt
         assert "Prefer achievements, professions, gear" not in prompt
         assert service.effective_max_words == 70
         await service.close()

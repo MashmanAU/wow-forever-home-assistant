@@ -2,14 +2,13 @@
 
 Repository-backed Home Assistant app for the WoW Forever Discord level bot.
 
-## v1.13.0
+## v1.14.0
 
-- Adds `daily_notification` with `everyone`, `here` and `none` choices in Home Assistant.
-- Defaults to `everyone` to preserve the existing scheduled behaviour.
-- Applies the setting only to scheduled production reports; both test commands remain mention-free.
-- Allows no-notification schedules without requiring the Discord Mention Everyone permission.
-- Applies changes after Save + Restart without replacing the stored schedule.
-- Preserves v1.12.0 presentation, class icons, announcer logic, data, schedules, Wowhead controls and safeguards.
+- Fixes daily level gains when consecutive scheduled snapshots are a few seconds or minutes either side of exactly 24 hours apart.
+- Selects the snapshot nearest the intended 24-hour mark instead of falling back to a roughly 48-hour-old observation.
+- Leaves a 24-hour change unknown when no suitably close daily baseline exists rather than showing a misleading value.
+- Weights commentary across unlike scales: character levels cap at 60 and later gains count more, while profession tracks commonly span 150–300 points.
+- Preserves v1.13.0 notification choices, presentation, class icons, data, schedules, Wowhead controls and safeguards.
 - Makes no database schema change and creates no migration backup.
 
-See `RELEASE_NOTES_V1.13.0.md`, `PUBLISHING.md` and `DEPLOY_V1.13.0.md`.
+See `RELEASE_NOTES_V1.14.0.md`, `PUBLISHING.md` and `DEPLOY_V1.14.0.md`.

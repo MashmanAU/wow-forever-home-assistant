@@ -155,7 +155,7 @@ def _story_candidates(
 
 
 def _candidate_significance(candidate: dict[str, Any]) -> tuple[float, int]:
-    """Return a neutral fallback signal; the language model still reviews every candidate."""
+    """Return a scale-aware fallback signal for otherwise incomparable activities."""
 
     facts = list(candidate.get("facts") or [])
     angle = candidate.get("angle")
@@ -164,10 +164,19 @@ def _candidate_significance(candidate: dict[str, Any]) -> tuple[float, int]:
         magnitude = float(sum(len(item.get("achievements") or []) for item in facts))
     elif angle == "gear-and-craft":
         for item in facts:
-            magnitude += sum(
-                max(0.0, float(gain.get("gain") or 0))
-                for gain in item.get("profession_gains") or []
-            )
+            for gain in item.get("profession_gains") or []:
+                points = max(0.0, float(gain.get("gain") or 0))
+                maximum = max(1.0, float(gain.get("maximum") or 300))
+                current = max(0.0, float(gain.get("skill") or points))
+                starting = max(0.0, current - points)
+                average_completion = min(1.0, (starting + current) / (2 * maximum))
+                # Profession tracks commonly span 150-300 points. Normalising the
+                # gain prevents a large low-skill crafting burst from dwarfing a
+                # character level merely because the underlying scales differ.
+                magnitude += min(
+                    12.0,
+                    (points / maximum) * 30.0 * (0.5 + average_completion),
+                )
             magnitude += 4 * max(0.0, float(item.get("average_item_level_gain") or 0))
             magnitude += 4 * max(0.0, float(item.get("equipped_item_level_gain") or 0))
     elif angle == "pvp-desk":
@@ -179,7 +188,16 @@ def _candidate_significance(candidate: dict[str, Any]) -> tuple[float, int]:
     elif angle == "news-flash":
         magnitude = float(len(facts))
     elif angle == "level-race":
-        magnitude = 3 * float(sum(max(0, item.get("levels_24h") or 0) for item in facts))
+        for item in facts:
+            gained = max(0, int(item.get("levels_24h") or 0))
+            current_level = max(0, int(item.get("level") or 0))
+            starting_level = max(0, current_level - gained)
+            # Character levels cap at 60. Each gained level carries substantial
+            # base weight, with later levels worth progressively more.
+            magnitude += sum(
+                10.0 + 20.0 * (min(60, starting_level + step) / 60.0) ** 2
+                for step in range(1, gained + 1)
+            )
     elif angle == "survival-report":
         magnitude = float(sum(max(0, item.get("deaths_24h") or 0) for item in facts))
         magnitude += sum(
@@ -216,6 +234,9 @@ def build_daily_payload(
     characters: list[dict[str, Any]] = []
     for row in progress:
         snapshot = row.snapshot
+        profession_details = {
+            item.display_name: item for item in snapshot.professions
+        }
         characters.append(
             {
                 "name": snapshot.display_name,
@@ -255,7 +276,20 @@ def build_daily_payload(
                     for item in snapshot.professions
                 ],
                 "profession_skill_gains_24h": [
-                    {"profession": name, "gain": gain}
+                    {
+                        "profession": name,
+                        "gain": gain,
+                        "skill": (
+                            profession_details[name].skill_points
+                            if name in profession_details
+                            else None
+                        ),
+                        "maximum": (
+                            profession_details[name].max_skill_points
+                            if name in profession_details
+                            else None
+                        ),
+                    }
                     for name, gain in row.profession_skill_gains_24h
                 ],
                 "days_since_last_level": row.days_since_last_level,
@@ -287,6 +321,10 @@ def build_daily_payload(
         for item in news[:5]
     ]
     candidates = _story_candidates(characters, news_facts)
+    for candidate in candidates:
+        candidate["significance_score"] = round(
+            _candidate_significance(candidate)[0], 3
+        )
     story_angle = _select_story_angle(candidates)
 
     active = [
@@ -334,7 +372,11 @@ def build_daily_payload(
             "primary_story_angle_is_fallback_hint": True,
             "selection_rule": (
                 "Choose the most significant, novel-within-today and entertaining verified story. "
-                "No activity category is preferred or penalised."
+                "Compare activity on its natural scale: character levels cap at 60 and become more "
+                "significant at higher levels, while profession tracks commonly span 150-300 points. "
+                "Do not treat raw profession points as equivalent to character levels. The supplied "
+                "significance_score is the application's normalised cross-scale comparison and should "
+                "govern the lead unless another verified angle is materially more novel or entertaining."
             ),
             "recent_commentary": [
                 {
@@ -351,6 +393,7 @@ def build_daily_payload(
             "character_facts_are_deterministically_derived": True,
             "recent_commentary_is_style_memory_not_factual_evidence": True,
             "story_candidates_are_precomputed_factual_angles": True,
+            "candidate_significance_scores_are_scale_normalised": True,
         },
     }
 
@@ -535,8 +578,11 @@ class CommentaryService:
             f"{_FIXED_GROUNDING_RULES} {_FIXED_REPETITION_RULES} "
             "Review all supplied character activity, story candidates and relevant news, then open with what is genuinely "
             "most interesting today. Select by significance, novelty within today's verified facts and entertainment value. "
-            "There is no preferred category: levelling, rankings, deaths, achievements, professions, gear, PvP, XP, unusual "
-            "activity, inactivity and supplied news are equally valid subjects. If levelling is clearly the biggest story, "
+            "There is no automatically preferred category: levelling, rankings, deaths, achievements, professions, gear, PvP, XP, unusual "
+            "activity, inactivity and supplied news are all valid subjects. Compare unlike scales fairly: character levels cap "
+            "at 60 and higher-level gains are especially significant, while profession tracks commonly span 150-300 points. "
+            "Never equate raw profession points with character levels. Use each candidate's significance_score as the normalised "
+            "cross-scale comparison; depart from it only for a materially more novel or entertaining verified angle. If levelling is clearly the biggest story, "
             "lead with levelling. The supplied primary_story_angle is a deterministic fallback hint, not an instruction to "
             "ignore a more significant supplied candidate. Do not force every available category into the bulletin. Use at "
             "most three character names and at most one supplied "

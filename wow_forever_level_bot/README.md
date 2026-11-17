@@ -2,17 +2,16 @@
 
 A Discord bot that verifies and tracks World of Warcraft: Forever characters through Blizzard's profile API. It supports separate tracking lists and schedules for each Discord server and stores data persistently in SQLite under `/data/wow_forever.db`.
 
-## Version 1.13.0 configurable daily notification
+## Version 1.14.0 accurate daily movement and scale-aware commentary
 
-Version 1.13.0 adds one production-notification control while retaining the proven v1.12.0 presentation, class icons and announcer behaviour:
+Version 1.14.0 corrects daily movement and balances commentary while retaining the v1.13.0 presentation, notifications, class icons and announcer behaviour:
 
-- `daily_notification` selects `everyone`, `here` or `none` in Home Assistant;
-- `everyone` remains the default, preserving existing scheduled behaviour after upgrade;
-- the selected value applies only to scheduled production reports;
-- `/daily-post-test` and `/daily-live-test` always suppress mentions regardless of the setting;
-- Save + Restart is sufficient after changing the setting; the persisted schedule, time and destination do not need to be recreated;
-- `/schedule` checks **Mention @everyone, @here and All Roles** only when `everyone` or `here` is selected;
-- Split Image and Table remain the only selectable modes, including the existing native text fallback; and
+- 24-hour changes use the stored snapshot nearest the intended 24-hour mark, tolerating normal scheduler jitter and daylight-saving changes;
+- a slightly early daily run no longer skips yesterday's snapshot and compares against the day before;
+- a missing suitable baseline is shown as unknown instead of being stretched into an inaccurate daily value;
+- commentary significance normalises profession gains against their 150–300 point scale;
+- character levels receive substantial weighting, increasing towards the level-60 cap; and
+- existing notification, read-only test, Split Image/Table and native fallback behaviour is unchanged; and
 - no database schema migration is required.
 
 The image renderer is deterministic Python/Pillow code. No generative image model touches names, levels, professions or other live statistics. Missing optional data is omitted cleanly, and a missing scalable font or failed Components V2 delivery activates the native text fallback.
@@ -39,7 +38,7 @@ The model can deterministically derive:
 - item-level changes; and
 - profession skill gains.
 
-Daily deltas require a baseline between 24 and 48 hours old. Weekly deltas require a baseline between seven and eight days old. Until enough history exists, the relevant values remain unknown rather than being reported as zero. Rank movement is calculated only when every currently ranked character has a valid 24-hour baseline.
+Daily deltas use the stored observation nearest 24 hours ago within an 18–30 hour tolerance. Weekly deltas use the observation nearest seven days ago within a ±12-hour tolerance. These symmetric windows prevent normal scheduling jitter from accidentally selecting a two-day-old baseline. Until a suitable baseline exists, the relevant values remain unknown rather than being reported as zero. Rank movement is calculated only when every currently ranked character has a valid 24-hour baseline.
 
 ### Death-counter rule
 
@@ -114,7 +113,7 @@ Home Assistant exposes these options:
 
 ## Database upgrade
 
-Version 1.13.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The notification choice is global Home Assistant app configuration, not schedule data. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
+Version 1.14.0 makes no database schema change. It keeps the v1.6.0 `characters`, `schedules`, `character_snapshots` and `commentary_history` tables unchanged. The notification choice remains global Home Assistant app configuration, not schedule data. The newest 30 scheduled intros per guild are retained for anti-repetition; at most five are sent as style memory. `/daily-live-test` reads existing snapshots and commentary memory but keeps newly fetched Blizzard snapshots in memory and performs no database writes.
 
 ## Forever API notes
 

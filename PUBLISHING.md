@@ -61,7 +61,7 @@ The release ZIP should be kept outside the Git clone so the clean-tree check is 
 To create the release commit locally but not push it:
 
 ```powershell
-.\publish.ps1 "C:\Users\you\Downloads\WoW-Forever-Home-Assistant-v1.13.0-review.zip" -NoPush
+.\publish.ps1 "C:\Users\you\Downloads\WoW-Forever-Home-Assistant-v1.14.0-review.zip" -NoPush
 ```
 
 Review it with:

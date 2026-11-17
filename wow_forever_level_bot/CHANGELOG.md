@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.14.0
+
+- Fixes 24-hour level gains when scheduler timing places yesterday's snapshot just under 24 hours old.
+- Chooses the snapshot nearest the 24-hour target within an 18–30 hour tolerance instead of falling back to an observation from roughly two days ago.
+- Applies the same nearest-target principle to seven-day changes with a ±12-hour tolerance.
+- Leaves a delta unknown when no suitably close baseline exists rather than presenting a stale interval as a daily or weekly change.
+- Normalises profession commentary weighting against the profession's maximum skill and completion range.
+- Gives character levels a substantial scale-aware score that increases towards the level-60 cap, so one or two high-level gains outrank large low-level crafting bursts.
+- Adds regression coverage for early scheduler drift, stale baselines, profession scale metadata and level-versus-profession story selection.
+- Preserves v1.13.0 notification controls, Discord delivery, presentation modes, stored data and schedules.
+- Makes no database schema change.
+
 ## 1.13.0
 
 - Adds a Home Assistant `daily_notification` setting with `everyone`, `here` and `none` choices.
